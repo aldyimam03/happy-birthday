@@ -18,7 +18,11 @@ const DEFAULT_CONFIG = {
   smiley: ":)",
   wishHeading: "Happy Birthday!",
   outroText: "Okay, now come back and tell me if you liked it.",
+  finalNote: "I hope this little surprise made you smile. Happy birthday, Sarah. May this year be gentle, exciting, and full of good things for you. ❤️",
   replayText: "Or click, if you want to watch it again.",
+  shareLabel: "Share this moment",
+  shareText: "A little birthday surprise for Sarah Aqila Rahman 🎉",
+  siteUrl: "",
   outroSmiley: "❤️❤️❤️",
 };
 
@@ -35,11 +39,16 @@ const elements = {
   startScreen: $("#startScreen"),
   startButton: $("#startButton"),
   startSubtitle: $("#startSubtitle"),
+  loader: $("#loader"),
+  loaderBar: $("#loaderBar"),
+  loaderText: $("#loaderText"),
   experience: $("#experience"),
   audio: $("#birthdayAudio"),
   audioToggle: $("#audioToggle"),
   skipButton: $("#skipButton"),
   replayButton: $("#replayButton"),
+  shareButton: $("#shareButton"),
+  shareStatus: $("#shareStatus"),
   progress: $("#progress span"),
   error: $("#errorMessage"),
   portrait: $("#portrait"),
@@ -74,6 +83,60 @@ async function loadConfig() {
   elements.portrait.alt = `Foto ${config.name}`;
   document.title = `Selamat Ulang Tahun, ${config.name}! 🎉`;
   elements.startSubtitle.textContent = `Ada pesan spesial untuk ${config.name}. Aktifkan suara, lalu buka saat kamu siap.`;
+  applySocialMetadata();
+}
+
+function applySocialMetadata() {
+  document.querySelector('meta[property="og:description"]').content = config.shareText;
+  if (!config.siteUrl) return;
+  try {
+    const pageUrl = new URL(config.siteUrl);
+    document.querySelector('meta[property="og:image"]').content = new URL(config.imagePath, pageUrl).href;
+    let urlMeta = document.querySelector('meta[property="og:url"]');
+    if (!urlMeta) {
+      urlMeta = document.createElement("meta");
+      urlMeta.setAttribute("property", "og:url");
+      document.head.append(urlMeta);
+    }
+    urlMeta.content = pageUrl.href;
+  } catch (error) {
+    console.warn("siteUrl di customize.json tidak valid:", error);
+  }
+}
+
+function updateLoader(percent, message) {
+  elements.loaderBar.style.width = `${percent}%`;
+  elements.loaderText.textContent = message;
+}
+
+function waitForAudio() {
+  if (elements.audio.readyState >= 2) return Promise.resolve();
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    elements.audio.addEventListener("canplay", finish, { once: true });
+    elements.audio.addEventListener("error", finish, { once: true });
+    window.setTimeout(finish, 5000);
+    elements.audio.load();
+  });
+}
+
+async function preloadAssets() {
+  updateLoader(20, "Memuat foto…");
+  try {
+    if (!elements.portrait.complete) await elements.portrait.decode();
+  } catch (error) {
+    console.warn("Foto belum selesai dimuat:", error);
+  }
+  updateLoader(60, "Memuat musik…");
+  await waitForAudio();
+  updateLoader(100, "Kejutan sudah siap!");
+  elements.startButton.disabled = false;
+  window.setTimeout(() => { elements.loader.hidden = true; }, 450);
 }
 
 function showError(message) {
@@ -166,10 +229,15 @@ async function playSequence() {
 
   if (signal.aborted) return;
   createBalloons();
+  const portraitWrap = $(".portrait-wrap");
+  const finalCopy = $(".final-copy");
+  portraitWrap.style.opacity = "0";
+  finalCopy.style.opacity = "0";
   const finalScene = await showScene("#sceneFinal", 78, signal);
+  launchConfetti();
   await Promise.all([
-    animate($(".portrait-wrap"), [{ opacity: 0, transform: "scale(.7) rotate(-5deg)" }, { opacity: 1, transform: "scale(1) rotate(0)" }], { duration: 900 }),
-    animate($(".final-copy"), [{ opacity: 0, transform: "translateY(20px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 900, delay: 250 }),
+    animate(portraitWrap, [{ opacity: 0, transform: "scale(.7) rotate(-5deg)" }, { opacity: 1, transform: "scale(1) rotate(0)" }], { duration: 900 }),
+    animate(finalCopy, [{ opacity: 0, transform: "translateY(20px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 900, delay: 250 }),
   ]);
   await delay(reduceMotion ? 1800 : 6500, signal);
   if (signal.aborted || !finalScene) return;
@@ -197,6 +265,49 @@ function createBalloons() {
     balloon.style.setProperty("--drift", `${(index % 2 ? 1 : -1) * (20 + index)}px`);
     container.append(balloon);
   }
+}
+
+function launchConfetti() {
+  if (reduceMotion) return;
+  const canvas = $("#confetti");
+  const context = canvas.getContext("2d");
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  const bounds = canvas.getBoundingClientRect();
+  canvas.width = bounds.width * ratio;
+  canvas.height = bounds.height * ratio;
+  context.scale(ratio, ratio);
+  const colors = ["#e94f87", "#ffb84d", "#7bdcb5", "#8067e8", "#ff6b57"];
+  const pieces = Array.from({ length: 90 }, (_, index) => ({
+    x: bounds.width / 2 + (Math.random() - .5) * 120,
+    y: bounds.height * .35,
+    vx: (Math.random() - .5) * 12,
+    vy: -5 - Math.random() * 9,
+    gravity: .18 + Math.random() * .08,
+    rotation: Math.random() * Math.PI,
+    spin: (Math.random() - .5) * .25,
+    size: 5 + Math.random() * 7,
+    color: colors[index % colors.length],
+  }));
+  const startedAt = performance.now();
+
+  function draw(now) {
+    context.clearRect(0, 0, bounds.width, bounds.height);
+    for (const piece of pieces) {
+      piece.x += piece.vx;
+      piece.y += piece.vy;
+      piece.vy += piece.gravity;
+      piece.rotation += piece.spin;
+      context.save();
+      context.translate(piece.x, piece.y);
+      context.rotate(piece.rotation);
+      context.fillStyle = piece.color;
+      context.fillRect(-piece.size / 2, -piece.size / 3, piece.size, piece.size * .66);
+      context.restore();
+    }
+    if (now - startedAt < 4200) requestAnimationFrame(draw);
+    else context.clearRect(0, 0, bounds.width, bounds.height);
+  }
+  requestAnimationFrame(draw);
 }
 
 async function startApp() {
@@ -230,6 +341,23 @@ elements.replayButton.addEventListener("click", () => {
   playAudio();
   playSequence();
 });
+elements.shareButton.addEventListener("click", async () => {
+  const url = config.siteUrl || window.location.href;
+  const shareData = { title: document.title, text: config.shareText, url };
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+      elements.shareStatus.textContent = "Shared with love ❤️";
+    } else {
+      await navigator.clipboard.writeText(url);
+      elements.shareStatus.textContent = "Link copied! ❤️";
+    }
+  } catch (error) {
+    if (error.name !== "AbortError") {
+      elements.shareStatus.textContent = "Copy the link from your browser to share it.";
+    }
+  }
+});
 elements.portrait.addEventListener("error", () => {
   elements.portrait.src = "img/favicon.png";
   showError("Foto utama tidak ditemukan, jadi gambar cadangan digunakan.");
@@ -239,4 +367,4 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden) elements.audio.pause(); else playAudio();
 });
 
-loadConfig();
+loadConfig().then(preloadAssets);

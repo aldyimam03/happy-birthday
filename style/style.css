@@ -40,7 +40,10 @@ button:focus-visible {
 .start-screen {
   display: grid;
   place-items: center;
-  padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+  height: 100vh;
+  height: 100dvh;
+  padding: max(clamp(32px, 6vh, 64px), env(safe-area-inset-top)) 24px max(clamp(32px, 6vh, 64px), env(safe-area-inset-bottom));
+  overflow-y: auto;
   background:
     radial-gradient(circle at 16% 18%, rgba(255, 189, 213, 0.58), transparent 28%),
     radial-gradient(circle at 86% 76%, rgba(255, 214, 157, 0.48), transparent 30%),
@@ -49,12 +52,13 @@ button:focus-visible {
 
 .start-card {
   width: min(100%, 560px);
+  margin-block: auto;
   padding: clamp(32px, 8vw, 64px);
   text-align: center;
   border: 1px solid rgba(255, 255, 255, 0.9);
   border-radius: 32px;
   background: var(--panel);
-  box-shadow: var(--shadow);
+  box-shadow: 0 18px 60px rgba(101, 47, 75, 0.16);
   backdrop-filter: blur(18px);
   animation: card-in 700ms cubic-bezier(.22, 1, .36, 1) both;
 }
@@ -96,6 +100,10 @@ button:focus-visible {
 
 .primary-button:hover { transform: translateY(-2px); box-shadow: 0 16px 32px rgba(199, 53, 109, 0.34); }
 .primary-button:active { transform: translateY(0); }
+.primary-button:disabled { opacity: .58; box-shadow: none; cursor: wait; transform: none; }
+.loader { display: grid; gap: 9px; width: min(100%, 310px); margin: 0 auto 22px; color: var(--muted); font-size: .82rem; }
+.loader-track { height: 5px; overflow: hidden; border-radius: 999px; background: rgba(48, 37, 49, .1); }
+.loader-track span { display: block; width: 8%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ff96bc, var(--pink)); transition: width 350ms ease; }
 
 .experience {
   position: relative;
@@ -167,6 +175,7 @@ button:focus-visible {
 .idea strong { display: inline-block; padding: 0 .12em; border-radius: .18em; background: #ffe1ec; }
 
 .final-scene { align-content: center; gap: 22px; text-align: center; }
+.confetti { position: absolute; z-index: 4; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .portrait-wrap { position: relative; z-index: 2; width: clamp(190px, 42vw, 280px); }
 .portrait { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; object-position: center; border: 8px solid white; border-radius: 50%; box-shadow: var(--shadow); }
 .hat { position: absolute; z-index: 3; top: -40%; left: 50%; width: 28%; transform: translateX(-50%) rotate(-4deg); transform-origin: bottom center; filter: drop-shadow(0 8px 8px rgba(0, 0, 0, .12)); pointer-events: none; }
@@ -179,6 +188,10 @@ button:focus-visible {
 
 .outro-scene .scene-content { display: grid; justify-items: center; gap: 18px; }
 .outro-scene p { max-width: 700px; margin: 0; }
+.final-note { padding: 18px 22px; border: 1px solid rgba(233, 79, 135, .14); border-radius: 18px; background: rgba(255, 255, 255, .62); color: var(--muted); font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.05rem, 2.5vw, 1.3rem) !important; line-height: 1.65 !important; }
+.secondary-button { min-height: 48px; padding: 11px 22px; color: var(--pink-dark); font-weight: 750; border: 1px solid rgba(199, 53, 109, .24); border-radius: 999px; background: rgba(255, 255, 255, .76); cursor: pointer; }
+.secondary-button:hover { background: white; }
+.share-status { min-height: 1.2em; color: var(--pink-dark); font-size: .9rem !important; }
 .smile { color: var(--pink-dark); font-size: 2.4rem !important; font-weight: 800; letter-spacing: .12em; }
 
 .progress { position: fixed; z-index: 60; right: 0; bottom: 0; left: 0; height: 4px; background: rgba(48, 37, 49, .08); }
@@ -191,10 +204,20 @@ button:focus-visible {
 @keyframes float-up { to { transform: translate3d(var(--drift), -130vh, 0) rotate(12deg); } }
 
 @media (max-height: 680px) {
+  .start-screen { padding-block: 20px; }
+  .start-card { padding-block: 26px; }
   .scene { padding-top: 68px; }
   .portrait-wrap { width: clamp(145px, 32vh, 210px); }
   .final-copy h2 { font-size: clamp(2.2rem, 8vh, 4rem); }
   .final-copy p { margin-top: 8px; }
+}
+
+@media (max-height: 760px) {
+  .outro-scene { padding-top: 68px; }
+  .outro-scene .scene-content { gap: 10px; }
+  .outro-emoji { font-size: 42px; }
+  .final-note { padding: 12px 16px; line-height: 1.4 !important; }
+  .outro-scene .primary-button, .outro-scene .secondary-button { min-height: 42px; padding-block: 9px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

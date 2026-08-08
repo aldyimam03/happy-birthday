@@ -5,7 +5,8 @@
   "description": "Halaman kejutan ulang tahun personal yang ringan, responsif, dan mudah dikustomisasi.",
   "scripts": {
     "start": "node script/server.js",
-    "check": "node --check script/main.js && node --check script/server.js"
+    "check": "node --check script/main.js && node --check script/server.js && node --check script/prepare-share.js",
+    "prepare:share": "node script/prepare-share.js"
   },
   "keywords": ["birthday", "greeting", "animation"],
   "license": "MIT"

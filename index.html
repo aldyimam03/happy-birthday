@@ -9,6 +9,8 @@
     <meta property="og:title" content="Ada kejutan ulang tahun untukmu 🎉" />
     <meta property="og:description" content="Buka untuk melihat pesan spesialmu." />
     <meta property="og:image" content="img/sarah.jpeg" />
+    <meta property="og:url" content="" />
+    <meta name="twitter:card" content="summary_large_image" />
     <title>Ada Kejutan Untukmu 🎉</title>
     <link rel="icon" type="image/png" href="img/favicon.png" />
     <link rel="stylesheet" href="style/style.css" />
@@ -20,8 +22,12 @@
           <span class="start-emoji" aria-hidden="true">🎁</span>
           <p class="eyebrow">Sebuah kejutan kecil</p>
           <h1 id="startTitle">Ada sesuatu untukmu</h1>
-          <p id="startSubtitle">Pastikan suaramu aktif, lalu buka saat kamu siap.</p>
-          <button id="startButton" class="primary-button" type="button">Buka kejutan <span aria-hidden="true">✨</span></button>
+          <p id="startSubtitle">Menyiapkan kejutan untukmu...</p>
+          <div id="loader" class="loader" role="status" aria-live="polite">
+            <span class="loader-track"><span id="loaderBar"></span></span>
+            <span id="loaderText">Memuat foto dan musik…</span>
+          </div>
+          <button id="startButton" class="primary-button" type="button" disabled>Buka kejutan <span aria-hidden="true">✨</span></button>
         </div>
       </section>
 
@@ -62,6 +68,7 @@
         </div>
 
         <div id="sceneFinal" class="scene final-scene">
+          <canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
           <div id="balloons" class="balloons" aria-hidden="true"></div>
           <div class="portrait-wrap">
             <img id="portrait" class="portrait" src="img/sarah.jpeg" alt="Foto Sarah Aqila Rahman" data-image-field="imagePath" />
@@ -77,7 +84,10 @@
           <div class="scene-content">
             <span class="outro-emoji" aria-hidden="true">💝</span>
             <p data-field="outroText">Sekarang, bilang padaku kalau kamu menyukainya.</p>
+            <p class="final-note" data-field="finalNote">I hope this little surprise made you smile. Happy birthday, Sarah. May this year be gentle, exciting, and full of good things for you. ❤️</p>
             <button id="replayButton" class="primary-button" type="button" data-field="replayText">Putar sekali lagi</button>
+            <button id="shareButton" class="secondary-button" type="button" data-field="shareLabel">Share this moment</button>
+            <p id="shareStatus" class="share-status" role="status" aria-live="polite"></p>
             <p class="smile" data-field="outroSmiley">:)</p>
           </div>
         </div>
