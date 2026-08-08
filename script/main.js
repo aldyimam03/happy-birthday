@@ -74,6 +74,7 @@ const elements = {
   experience: $("#experience"),
   audio: $("#birthdayAudio"),
   audioToggle: $("#audioToggle"),
+  volumeSlider: $("#volumeSlider"),
   skipButton: $("#skipButton"),
   replayButton: $("#replayButton"),
   shareButton: $("#shareButton"),
@@ -87,12 +88,15 @@ const elements = {
   error: $("#errorMessage"),
   portrait: $("#portrait"),
   portraits: [...document.querySelectorAll(".portrait-bubble")],
+  chatSendButton: $("#chatSendButton"),
+  chatCursorHint: $("#chatCursorHint"),
 };
 
 let config = { ...DEFAULT_CONFIG };
 let sequenceController = null;
 let appStarted = false;
 let musicEnabled = true;
+let currentVolume = 0.35;
 let activeScene = null;
 let progressAnimation = null;
 let reviewSlides = [];
@@ -273,7 +277,7 @@ function splitAnimatedText(selector, mode = "words") {
 }
 
 function prepareAnimatedText() {
-  splitAnimatedText('[data-field="name"]');
+  splitAnimatedText('[data-field="name"]', "letters");
   splitAnimatedText('[data-field="text1"]');
   splitAnimatedText('[data-field="galleryTitle"]');
   splitAnimatedText('[data-field="wishHeading"]', "letters");
@@ -286,15 +290,21 @@ function animateTextPieces(selector, variant = "rise") {
     pop: { opacity: 0, transform: "scale(.35) rotate(-7deg)" },
     alternate: null,
     letters: { opacity: 0, transform: "translateY(-30px) rotate(12deg) scale(.7)" },
+    name: null,
   };
   return Promise.all(pieces.map((piece, index) => {
     const start = variant === "alternate"
       ? { opacity: 0, transform: `translateX(${index % 2 ? 30 : -30}px) rotate(${index % 2 ? 3 : -3}deg)` }
+      : variant === "name"
+        ? {
+          opacity: 0,
+          transform: `translate3d(${index % 2 ? 16 : -16}px, -18px, 0) scale(${1.9 - Math.min(index * 0.035, 0.45)}) rotate(${index % 2 ? 14 : -14}deg)`,
+        }
       : starts[variant];
     return animate(piece, [start, { opacity: 1, transform: "translate(0) rotate(0) scale(1)" }], {
-      duration: variant === "letters" ? 520 : 620,
-      delay: index * (variant === "letters" ? 55 : 110),
-      easing: variant === "pop" || variant === "letters" ? "cubic-bezier(.34, 1.56, .64, 1)" : "cubic-bezier(.22, 1, .36, 1)",
+      duration: variant === "letters" ? 520 : variant === "name" ? 560 : 620,
+      delay: index * (variant === "letters" ? 55 : variant === "name" ? 44 : 110),
+      easing: variant === "pop" || variant === "letters" || variant === "name" ? "cubic-bezier(.34, 1.56, .64, 1)" : "cubic-bezier(.22, 1, .36, 1)",
     });
   }));
 }
@@ -408,9 +418,26 @@ function showError(message) {
 
 function setAudioButton() {
   const playing = musicEnabled && !elements.audio.paused;
-  elements.audioToggle.textContent = playing ? "🔊" : "🔇";
+  const levelIcon = currentVolume > 0.66 ? "🔊" : currentVolume > 0.2 ? "🔉" : "🔈";
+  elements.audioToggle.textContent = playing ? levelIcon : "🔇";
   elements.audioToggle.setAttribute("aria-label", playing ? "Matikan musik" : "Nyalakan musik");
   elements.audioToggle.setAttribute("aria-pressed", String(!musicEnabled));
+}
+
+function applyVolume(volume) {
+  currentVolume = Math.max(0, Math.min(1, volume));
+  elements.audio.volume = currentVolume;
+  if (elements.volumeSlider) {
+    elements.volumeSlider.value = String(Math.round(currentVolume * 100));
+    elements.volumeSlider.setAttribute("aria-valuenow", elements.volumeSlider.value);
+    elements.volumeSlider.setAttribute("aria-valuetext", `${elements.volumeSlider.value}%`);
+  }
+  if (musicEnabled && currentVolume === 0) {
+    musicEnabled = false;
+  } else if (!musicEnabled && currentVolume > 0) {
+    musicEnabled = true;
+  }
+  setAudioButton();
 }
 
 async function playAudio() {
@@ -471,6 +498,12 @@ function finishProgress(duration = 700) {
   );
 }
 
+function setProgressPaused(paused) {
+  if (!progressAnimation) return;
+  if (paused) progressAnimation.pause();
+  else progressAnimation.play();
+}
+
 function resetRuntimeAnimations() {
   const animatedSelectors = [
     ".scene",
@@ -491,6 +524,12 @@ function resetRuntimeAnimations() {
     piece.style.opacity = "0";
     piece.style.transform = "";
   });
+  const chatNode = $("#chatText");
+  chatNode.textContent = "";
+  chatNode.classList.remove("typing-caret");
+  elements.chatSendButton.disabled = true;
+  elements.chatSendButton.classList.remove("is-visible", "is-sent");
+  elements.chatCursorHint.classList.remove("is-visible");
   document.querySelectorAll(".portrait-bubble").forEach((portrait) => {
     portrait.hidden = true;
     portrait.style.opacity = "0";
@@ -531,6 +570,39 @@ async function typeChat(signal) {
     await delay(character === " " ? 18 : 35, signal);
   }
   node.classList.remove("typing-caret");
+}
+
+async function showChatSendPrompt(signal) {
+  if (signal.aborted) return;
+  elements.chatSendButton.disabled = false;
+  elements.chatSendButton.classList.add("is-visible");
+  if (!reduceMotion) {
+    await animate(elements.chatSendButton, [
+      { opacity: 0, transform: "translateY(12px) scale(.96)" },
+      { opacity: 1, transform: "translateY(0) scale(1)" },
+    ], { duration: 320, easing: "cubic-bezier(.34, 1.56, .64, 1)" });
+  }
+  if (signal.aborted) return;
+  elements.chatCursorHint.classList.add("is-visible");
+}
+
+async function autoSendChat(signal) {
+  if (signal.aborted) return;
+  setProgressPaused(true);
+  await delay(reduceMotion ? 240 : 920, signal);
+  if (signal.aborted) {
+    setProgressPaused(false);
+    return;
+  }
+  elements.chatSendButton.classList.add("is-sent");
+  await animate(elements.chatSendButton, [
+    { transform: "translateY(0) scale(1)" },
+    { transform: "translateY(1px) scale(.93)", offset: .45 },
+    { transform: "translateY(0) scale(1)" },
+  ], { duration: reduceMotion ? 120 : 260, easing: "cubic-bezier(.34, 1.56, .64, 1)" });
+  elements.chatCursorHint.classList.remove("is-visible");
+  elements.chatSendButton.disabled = true;
+  setProgressPaused(false);
 }
 
 async function playGallery(signal) {
@@ -577,7 +649,7 @@ async function playSequence() {
 
   let greetingAnimation;
   await showScene("#sceneGreeting", 10, signal, () => {
-    greetingAnimation = animateTextPieces('[data-field="name"]', "rise");
+    greetingAnimation = animateTextPieces('[data-field="name"]', "name");
   });
   await greetingAnimation;
   await delay(reduceMotion ? 1000 : 2800, signal);
@@ -601,7 +673,12 @@ async function playSequence() {
     typingPromise = typeChat(signal);
   });
   await typingPromise;
-  await delay(reduceMotion ? 700 : 1100, signal);
+  if (signal.aborted) return;
+  await showChatSendPrompt(signal);
+  if (signal.aborted) return;
+  await autoSendChat(signal);
+  if (signal.aborted) return;
+  await delay(reduceMotion ? 180 : 360, signal);
 
   const ideas = [...document.querySelectorAll(".idea")];
   ideas.forEach((idea) => {
@@ -676,15 +753,30 @@ function createBalloons() {
   const container = $("#balloons");
   if (container.childElementCount) return;
   const sources = ["img/ballon1.svg", "img/ballon2.svg", "img/ballon3.svg"];
-  for (let index = 0; index < 18; index += 1) {
+  const colorVariants = [
+    "hue-rotate(0deg) saturate(1)",
+    "hue-rotate(35deg) saturate(1.12)",
+    "hue-rotate(75deg) saturate(1.18)",
+    "hue-rotate(120deg) saturate(1.15)",
+    "hue-rotate(185deg) saturate(1.08)",
+    "hue-rotate(245deg) saturate(1.14)",
+    "hue-rotate(300deg) saturate(1.1)",
+    "hue-rotate(330deg) saturate(1.06)",
+  ];
+  for (let index = 0; index < 60; index += 1) {
     const balloon = document.createElement("img");
     balloon.className = "balloon";
     balloon.src = sources[index % sources.length];
     balloon.alt = "";
-    balloon.style.left = `${(index * 37) % 96}%`;
-    balloon.style.setProperty("--delay", `${(index % 7) * -1.1}s`);
-    balloon.style.setProperty("--duration", `${7 + (index % 5)}s`);
-    balloon.style.setProperty("--drift", `${(index % 2 ? 1 : -1) * (20 + index)}px`);
+    balloon.style.left = `${(index * 17) % 98}%`;
+    balloon.style.setProperty("--delay", `${(index % 9) * -0.95}s`);
+    balloon.style.setProperty("--duration", `${6.5 + (index % 6)}s`);
+    balloon.style.setProperty("--drift", `${(index % 2 ? 1 : -1) * (18 + (index * 1.5))}px`);
+    balloon.style.setProperty("--lift", `${122 + (index % 4) * 6}vh`);
+    balloon.style.setProperty("--balloon-scale", `${0.82 + (index % 5) * 0.08}`);
+    balloon.style.setProperty("--balloon-filter", colorVariants[index % colorVariants.length]);
+    balloon.style.zIndex = String(1 + (index % 4));
+    balloon.style.opacity = String(0.56 + ((index % 5) * 0.08));
     container.append(balloon);
   }
 }
@@ -801,6 +893,16 @@ elements.audioToggle.addEventListener("click", async () => {
   if (musicEnabled) await playAudio(); else elements.audio.pause();
   setAudioButton();
 });
+elements.volumeSlider?.addEventListener("input", async (event) => {
+  const nextVolume = Number(event.target.value) / 100;
+  const wasMuted = !musicEnabled;
+  applyVolume(nextVolume);
+  if (musicEnabled) {
+    await playAudio();
+  } else if (!wasMuted) {
+    elements.audio.pause();
+  }
+});
 elements.skipButton.addEventListener("click", async () => {
   sequenceController?.abort();
   finishProgress(450);
@@ -857,4 +959,5 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden) elements.audio.pause(); else playAudio();
 });
 
+applyVolume(currentVolume);
 loadConfig().then(preloadAssets);
