@@ -182,9 +182,11 @@ function renderReviewSlide(slide) {
     const copy = $(".final-copy").cloneNode(true);
     portraits.querySelectorAll("[id]").forEach((node) => node.removeAttribute("id"));
     portraits.querySelectorAll(".portrait-bubble, .hat").forEach((node) => {
+      node.hidden = false;
       node.style.opacity = "1";
       node.style.visibility = "visible";
     });
+    copy.hidden = false;
     copy.style.opacity = "1";
     copy.querySelectorAll(".text-piece").forEach((piece) => { piece.style.opacity = "1"; });
     wrapper.append(portraits, copy);
@@ -469,6 +471,41 @@ function finishProgress(duration = 700) {
   );
 }
 
+function resetRuntimeAnimations() {
+  const animatedSelectors = [
+    ".scene",
+    ".text-piece",
+    ".idea",
+    ".memory-card",
+    ".gallery-more",
+    ".portrait-bubble",
+    ".portrait-wrap .hat",
+    ".final-copy",
+    "#reviewContent",
+    "#progress span",
+  ];
+  document.querySelectorAll(animatedSelectors.join(",")).forEach((node) => {
+    node.getAnimations().forEach((animation) => animation.cancel());
+  });
+  document.querySelectorAll(".text-piece").forEach((piece) => {
+    piece.style.opacity = "0";
+    piece.style.transform = "";
+  });
+  document.querySelectorAll(".portrait-bubble").forEach((portrait) => {
+    portrait.hidden = true;
+    portrait.style.opacity = "0";
+    portrait.style.transform = "";
+  });
+  const partyHat = $(".portrait-wrap .hat");
+  partyHat.hidden = true;
+  partyHat.style.opacity = "0";
+  partyHat.style.transform = "";
+  const finalCopy = $(".final-copy");
+  finalCopy.hidden = true;
+  finalCopy.style.opacity = "0";
+  finalCopy.style.transform = "";
+}
+
 async function showScene(selector, progress, signal, onActivated) {
   if (signal.aborted) return null;
   if (activeScene) {
@@ -595,17 +632,25 @@ async function playSequence() {
   const portraitBubbles = [...document.querySelectorAll(".portrait-bubble")];
   const partyHat = $(".portrait-wrap .hat");
   portraitWrap.style.opacity = "1";
-  portraitBubbles.forEach((portrait) => { portrait.style.opacity = "0"; });
+  portraitBubbles.forEach((portrait) => {
+    portrait.hidden = true;
+    portrait.style.opacity = "0";
+  });
+  partyHat.hidden = true;
   partyHat.style.opacity = "0";
+  finalCopy.hidden = true;
   finalCopy.style.opacity = "0";
   const finalScene = await showScene("#sceneFinal", 84, signal);
   for (const [index, portrait] of portraitBubbles.entries()) {
     if (signal.aborted) return;
+    portrait.hidden = false;
     await animate(portrait, [
       { opacity: 0, transform: `translateX(${index === 0 ? 0 : index % 2 ? 24 : -24}px) scale(.55) rotate(${index % 2 ? 10 : -10}deg)` },
       { opacity: 1, transform: "translateX(0) scale(1) rotate(0)" },
     ], { duration: index === 0 ? 700 : 480, easing: "cubic-bezier(.34, 1.56, .64, 1)" });
   }
+  partyHat.hidden = false;
+  finalCopy.hidden = false;
   await Promise.all([
     animate(partyHat, [{ opacity: 0, transform: "translateX(-50%) translateY(-30px) rotate(-16deg)" }, { opacity: 1, transform: "translateX(-50%) translateY(0) rotate(-4deg)" }], { duration: 550 }),
     animate(finalCopy, [{ opacity: 0, transform: "translateY(20px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 800, delay: 180 }),
@@ -766,6 +811,7 @@ elements.replayButton.addEventListener("click", () => {
   reviewReady = false;
   elements.reviewControls.hidden = true;
   elements.reviewScene.hidden = true;
+  resetRuntimeAnimations();
   document.querySelectorAll(".idea").forEach((idea) => {
     idea.style.opacity = "0";
     idea.style.visibility = "hidden";
