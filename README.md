@@ -13,7 +13,9 @@ Kemudian buka `http://localhost:7777`.
 
 ## Kustomisasi
 
-Ubah teks dan lokasi foto di `customize.json`. Simpan foto di folder `img`, lalu isi `imagePath` dengan path yang sesuai. Musik dapat diganti melalui `assets/audio/birthday.mp3`.
+Ubah teks dan lokasi foto di `customize.json`. Nilai di file tersebut menjadi prioritas utama dan akan menimpa `DEFAULT_CONFIG` di `script/main.js`. Jika sebuah nilai kosong, hilang, atau file JSON gagal dimuat, aplikasi akan memakai nilai default dari JavaScript.
+
+Simpan foto di folder `img`, lalu isi `imagePath` dengan path yang sesuai. Musik dapat diganti melalui `assets/audio/birthday.mp3`.
 
 Jalankan pemeriksaan sintaks sebelum deploy:
 
