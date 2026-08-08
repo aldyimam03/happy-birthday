@@ -14,6 +14,23 @@
   "text5Entry": "Because,",
   "text5Content": "You are Special",
   "smiley": "😊",
+  "galleryTitle": "Some moments I’ll always keep",
+  "galleryMore": "And so many more memories still waiting for us...",
+  "galleryPhotos": [
+    "img/AhaConvert_our_1.webp",
+    "img/AhaConvert_our_2.webp",
+    "img/AhaConvert_our_3.webp",
+    "img/AhaConvert_our_4.webp",
+    "img/AhaConvert_our_5.webp"
+  ],
+  "galleryCaptions": [
+    "A beautiful view, made better with you.",
+    "One of those days worth remembering.",
+    "The kind of happiness I want to keep.",
+    "Every little adventure feels special with you.",
+    "And, of course, our wonderfully silly moments."
+  ],
+  "galleryFocus": ["50% 58%", "50% 50%", "50% 50%", "50% 50%", "50% 53%"],
   "bigTextPart1": "S",
   "bigTextPart2": "O",
   "wishHeading": "Happy Birthday!",

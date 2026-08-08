@@ -16,6 +16,23 @@ const DEFAULT_CONFIG = {
   text5Entry: "Because,",
   text5Content: "You are Special",
   smiley: ":)",
+  galleryTitle: "Some moments I’ll always keep",
+  galleryMore: "And so many more memories still waiting for us...",
+  galleryPhotos: [
+    "img/AhaConvert_our_1.webp",
+    "img/AhaConvert_our_2.webp",
+    "img/AhaConvert_our_3.webp",
+    "img/AhaConvert_our_4.webp",
+    "img/AhaConvert_our_5.webp",
+  ],
+  galleryCaptions: [
+    "A beautiful view, made better with you.",
+    "One of those days worth remembering.",
+    "The kind of happiness I want to keep.",
+    "Every little adventure feels special with you.",
+    "And, of course, our wonderfully silly moments.",
+  ],
+  galleryFocus: ["50% 58%", "50% 50%", "50% 50%", "50% 50%", "50% 53%"],
   wishHeading: "Happy Birthday!",
   outroText: "Okay, now come back and tell me if you liked it.",
   finalNote: "I hope this little surprise made you smile. Happy birthday, Sarah. May this year be gentle, exciting, and full of good things for you. ❤️",
@@ -59,6 +76,7 @@ let sequenceController = null;
 let appStarted = false;
 let musicEnabled = true;
 let activeScene = null;
+let progressAnimation = null;
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 async function loadConfig() {
@@ -66,10 +84,13 @@ async function loadConfig() {
     const response = await fetch("customize.json", { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const incoming = await response.json();
-    config = Object.fromEntries(Object.entries(DEFAULT_CONFIG).map(([key, fallback]) => [
-      key,
-      typeof incoming[key] === "string" && incoming[key].trim() ? incoming[key].trim() : fallback,
-    ]));
+    config = Object.fromEntries(Object.entries(DEFAULT_CONFIG).map(([key, fallback]) => {
+      const customValue = incoming[key];
+      if (Array.isArray(fallback)) {
+        return [key, Array.isArray(customValue) && customValue.length ? customValue : fallback];
+      }
+      return [key, typeof customValue === "string" && customValue.trim() ? customValue.trim() : fallback];
+    }));
   } catch (error) {
     showError("Pesan personal gagal dimuat. Kejutan tetap berjalan dengan teks bawaan.");
     console.error("Gagal memuat customize.json:", error);
@@ -83,7 +104,45 @@ async function loadConfig() {
   elements.portrait.alt = `Foto ${config.name}`;
   document.title = `Selamat Ulang Tahun, ${config.name}! 🎉`;
   elements.startSubtitle.textContent = `Ada pesan spesial untuk ${config.name}. Aktifkan suara, lalu buka saat kamu siap.`;
+  renderGallery();
   applySocialMetadata();
+}
+
+function renderGallery() {
+  const stage = $("#galleryStage");
+  const dots = $("#galleryDots");
+  stage.replaceChildren();
+  dots.replaceChildren();
+  config.galleryPhotos.forEach((source, index) => {
+    const figure = document.createElement("figure");
+    figure.className = "memory-card";
+    const photoFrame = document.createElement("div");
+    photoFrame.className = "memory-photo-frame";
+    const photo = document.createElement("img");
+    photo.src = source;
+    photo.style.objectPosition = config.galleryFocus[index] || "50% 50%";
+    photo.alt = `Kenangan bersama ${config.name}, foto ${index + 1}`;
+    photo.loading = "eager";
+    const detectOrientation = () => {
+      figure.classList.toggle("is-portrait", photo.naturalHeight > photo.naturalWidth);
+    };
+    photo.addEventListener("load", detectOrientation, { once: true });
+    if (photo.complete) detectOrientation();
+    const caption = document.createElement("figcaption");
+    caption.textContent = config.galleryCaptions[index] || `Memory ${index + 1}`;
+    photoFrame.append(photo);
+    figure.append(photoFrame, caption);
+    stage.append(figure);
+
+    const dot = document.createElement("span");
+    dots.append(dot);
+  });
+  const more = document.createElement("p");
+  more.id = "galleryMore";
+  more.className = "gallery-more";
+  more.dataset.field = "galleryMore";
+  more.textContent = config.galleryMore;
+  stage.append(more);
 }
 
 function applySocialMetadata() {
@@ -126,13 +185,22 @@ function waitForAudio() {
 }
 
 async function preloadAssets() {
-  updateLoader(20, "Memuat foto…");
+  updateLoader(15, "Memuat foto utama…");
   try {
     if (!elements.portrait.complete) await elements.portrait.decode();
   } catch (error) {
     console.warn("Foto belum selesai dimuat:", error);
   }
-  updateLoader(60, "Memuat musik…");
+  updateLoader(35, "Memuat kenangan…");
+  const galleryImages = [...document.querySelectorAll(".memory-card img")];
+  await Promise.all(galleryImages.map(async (image) => {
+    try {
+      if (!image.complete) await image.decode();
+    } catch (error) {
+      console.warn(`Foto galeri gagal dimuat: ${image.src}`, error);
+    }
+  }));
+  updateLoader(75, "Memuat musik…");
   await waitForAudio();
   updateLoader(100, "Kejutan sudah siap!");
   elements.startButton.disabled = false;
@@ -170,7 +238,41 @@ function animate(node, keyframes, options = {}) {
   return animation.finished.catch(() => undefined);
 }
 
-async function showScene(selector, progress, signal) {
+function estimateSequenceDuration() {
+  if (reduceMotion) {
+    return 6500 + (config.galleryPhotos.length * 1100);
+  }
+  const typingDuration = [...config.textInChatBox].reduce((total, character) => total + (character === " " ? 18 : 35), 0);
+  const greetingAndBirthday = 650 + 2800 + 1030 + 2200;
+  const chat = Math.max(1030, 380 + typingDuration) + 1100;
+  const ideas = 1030 + (4 * (700 + 380)) + (3 * 1450) + 2000;
+  const gallery = 1030 + (config.galleryPhotos.length * (700 + 2100 + 450)) + 750 + 2200;
+  const finalAndOutro = 1030 + 900 + 6500 + 1030;
+  return greetingAndBirthday + chat + ideas + gallery + finalAndOutro;
+}
+
+function startProgress() {
+  progressAnimation?.cancel();
+  elements.progress.style.width = "0%";
+  progressAnimation = elements.progress.animate(
+    [{ width: "0%" }, { width: "100%" }],
+    { duration: estimateSequenceDuration(), easing: "linear", fill: "forwards" },
+  );
+}
+
+function finishProgress(duration = 700) {
+  const trackWidth = elements.progress.parentElement.getBoundingClientRect().width;
+  const currentWidth = elements.progress.getBoundingClientRect().width;
+  const currentPercent = trackWidth ? Math.min(100, (currentWidth / trackWidth) * 100) : 0;
+  progressAnimation?.cancel();
+  elements.progress.style.width = `${currentPercent}%`;
+  progressAnimation = elements.progress.animate(
+    [{ width: `${currentPercent}%` }, { width: "100%" }],
+    { duration, easing: "cubic-bezier(.22, 1, .36, 1)", fill: "forwards" },
+  );
+}
+
+async function showScene(selector, progress, signal, onActivated) {
   if (signal.aborted) return null;
   if (activeScene) {
     await animate(activeScene, [{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: "translateY(-18px)" }], { duration: 380 });
@@ -178,7 +280,7 @@ async function showScene(selector, progress, signal) {
   }
   activeScene = $(selector);
   activeScene.classList.add("is-active");
-  elements.progress.style.width = `${progress}%`;
+  onActivated?.();
   await animate(activeScene, [{ opacity: 0, transform: "translateY(18px) scale(.985)" }, { opacity: 1, transform: "translateY(0) scale(1)" }]);
   return activeScene;
 }
@@ -197,10 +299,47 @@ async function typeChat(signal) {
   node.classList.remove("typing-caret");
 }
 
+async function playGallery(signal) {
+  const cards = [...document.querySelectorAll(".memory-card")];
+  const dots = [...document.querySelectorAll(".gallery-dots span")];
+  const more = $("#galleryMore");
+  more.style.opacity = "0";
+  more.style.visibility = "hidden";
+  cards.forEach((card) => {
+    card.style.opacity = "0";
+    card.style.visibility = "hidden";
+  });
+
+  for (const [index, card] of cards.entries()) {
+    if (signal.aborted) return;
+    card.style.visibility = "visible";
+    dots.forEach((dot, dotIndex) => dot.classList.toggle("is-active", dotIndex === index));
+    await animate(card, [
+      { opacity: 0, transform: "translateX(28px) scale(.96) rotate(2deg)" },
+      { opacity: 1, transform: `translateX(0) scale(1) rotate(${index % 2 ? 1 : -1}deg)` },
+    ], { duration: 700 });
+    await delay(reduceMotion ? 1100 : 2100, signal);
+    await animate(card, [
+      { opacity: 1, transform: `translateX(0) scale(1) rotate(${index % 2 ? 1 : -1}deg)` },
+      { opacity: 0, transform: "translateX(-28px) scale(.97) rotate(-2deg)" },
+    ], { duration: 450 });
+    card.style.visibility = "hidden";
+  }
+  if (signal.aborted) return;
+  dots.forEach((dot) => dot.classList.remove("is-active"));
+  more.style.visibility = "visible";
+  await animate(more, [
+    { opacity: 0, transform: "translateY(18px) scale(.97)" },
+    { opacity: 1, transform: "translateY(0) scale(1)" },
+  ], { duration: 750 });
+  await delay(reduceMotion ? 1100 : 2200, signal);
+}
+
 async function playSequence() {
   sequenceController?.abort();
   sequenceController = new AbortController();
   const { signal } = sequenceController;
+  startProgress();
 
   await showScene("#sceneGreeting", 10, signal);
   await delay(reduceMotion ? 1000 : 2800, signal);
@@ -208,8 +347,18 @@ async function playSequence() {
   await showScene("#sceneBirthday", 25, signal);
   await delay(reduceMotion ? 1000 : 2200, signal);
   if (signal.aborted) return;
-  await showScene("#sceneChat", 40, signal);
-  await typeChat(signal);
+  const chatNode = $("#chatText");
+  if (reduceMotion) {
+    chatNode.textContent = config.textInChatBox;
+  } else {
+    chatNode.textContent = "";
+    chatNode.classList.add("typing-caret");
+  }
+  let typingPromise;
+  await showScene("#sceneChat", 40, signal, () => {
+    typingPromise = typeChat(signal);
+  });
+  await typingPromise;
   await delay(reduceMotion ? 700 : 1100, signal);
 
   const ideas = [...document.querySelectorAll(".idea")];
@@ -228,12 +377,15 @@ async function playSequence() {
   }
 
   if (signal.aborted) return;
+  await showScene("#sceneGallery", 68, signal);
+  await playGallery(signal);
+  if (signal.aborted) return;
   createBalloons();
   const portraitWrap = $(".portrait-wrap");
   const finalCopy = $(".final-copy");
   portraitWrap.style.opacity = "0";
   finalCopy.style.opacity = "0";
-  const finalScene = await showScene("#sceneFinal", 78, signal);
+  const finalScene = await showScene("#sceneFinal", 84, signal);
   launchConfetti();
   await Promise.all([
     animate(portraitWrap, [{ opacity: 0, transform: "scale(.7) rotate(-5deg)" }, { opacity: 1, transform: "scale(1) rotate(0)" }], { duration: 900 }),
@@ -246,6 +398,7 @@ async function playSequence() {
 
 async function showOutro(signal = new AbortController().signal) {
   await showScene("#sceneOutro", 100, signal);
+  finishProgress();
   elements.skipButton.hidden = true;
   elements.replayButton.focus({ preventScroll: true });
 }
@@ -328,6 +481,7 @@ elements.audioToggle.addEventListener("click", async () => {
 });
 elements.skipButton.addEventListener("click", async () => {
   sequenceController?.abort();
+  finishProgress(450);
   createBalloons();
   await showOutro();
 });
