@@ -1,311 +1,242 @@
-// Import the data to customize and insert them into page
-const fetchData = () => {
-  fetch("customize.json")
-    .then((data) => data.json())
-    .then((data) => {
-      dataArr = Object.keys(data);
-      dataArr.map((customData) => {
-        if (data[customData] !== "") {
-          if (customData === "imagePath") {
-            document
-              .querySelector(`[data-node-name*="${customData}"]`)
-              .setAttribute("src", data[customData]);
-          } else {
-            document.querySelector(
-              `[data-node-name*="${customData}"]`
-            ).innerText = data[customData];
-          }
-        }
+"use strict";
 
-        // Check if the iteration is over
-        // Run amimation if so
-        if (dataArr.length === dataArr.indexOf(customData) + 1) {
-          animationTimeline();
-        }
-      });
-    });
+const DEFAULT_CONFIG = {
+  greeting: "Hai...",
+  name: "Seseorang yang Spesial",
+  greetingText: "Hari ini adalah harimu.",
+  wishText: "Semoga semua hal baik selalu menemukan jalan menuju kamu.",
+  imagePath: "img/sarah.jpeg",
+  text1: "Ini hari ulang tahunmu! 🎉",
+  textInChatBox: "Selamat ulang tahun! Semoga panjang umur dan bahagia selalu...",
+  sendButtonLabel: "Kirim",
+  text2: "Awalnya, hanya itu yang ingin kukirim.",
+  text3: "Tapi kemudian aku berhenti sejenak.",
+  text4: "Aku ingin membuat sesuatu yang",
+  text4Adjective: "spesial",
+  text5Entry: "Karena,",
+  text5Content: "kamu memang spesial",
+  smiley: ":)",
+  wishHeading: "Selamat Ulang Tahun!",
+  outroText: "Sekarang, bilang padaku kalau kamu menyukainya.",
+  replayText: "Putar sekali lagi",
+  outroSmiley: ":)",
 };
 
-// Animation Timeline
-const animationTimeline = () => {
-  // Spit chars that needs to be animated individually
-  const textBoxChars = document.getElementsByClassName("hbd-chatbox")[0];
-  const hbd = document.getElementsByClassName("wish-hbd")[0];
+const $ = (selector) => document.querySelector(selector);
+const delay = (milliseconds, signal) => new Promise((resolve) => {
+  const timer = window.setTimeout(resolve, milliseconds);
+  signal?.addEventListener("abort", () => {
+    window.clearTimeout(timer);
+    resolve();
+  }, { once: true });
+});
 
-  textBoxChars.innerHTML = `<span>${textBoxChars.innerHTML
-    .split("")
-    .join("</span><span>")}</span`;
+const elements = {
+  startScreen: $("#startScreen"),
+  startButton: $("#startButton"),
+  startSubtitle: $("#startSubtitle"),
+  experience: $("#experience"),
+  audio: $("#birthdayAudio"),
+  audioToggle: $("#audioToggle"),
+  skipButton: $("#skipButton"),
+  replayButton: $("#replayButton"),
+  progress: $("#progress span"),
+  error: $("#errorMessage"),
+  portrait: $("#portrait"),
+};
 
-  hbd.innerHTML = `<span>${hbd.innerHTML
-    .split("")
-    .join("</span><span>")}</span`;
+let config = { ...DEFAULT_CONFIG };
+let sequenceController = null;
+let appStarted = false;
+let musicEnabled = true;
+let activeScene = null;
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  const ideaTextTrans = {
-    opacity: 0,
-    y: -20,
-    rotationX: 5,
-    skewX: "15deg",
-  };
+async function loadConfig() {
+  try {
+    const response = await fetch("customize.json", { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const incoming = await response.json();
+    config = Object.fromEntries(Object.entries(DEFAULT_CONFIG).map(([key, fallback]) => [
+      key,
+      typeof incoming[key] === "string" && incoming[key].trim() ? incoming[key].trim() : fallback,
+    ]));
+  } catch (error) {
+    showError("Pesan personal gagal dimuat. Kejutan tetap berjalan dengan teks bawaan.");
+    console.error("Gagal memuat customize.json:", error);
+  }
 
-  const ideaTextTransLeave = {
-    opacity: 0,
-    y: 20,
-    rotationY: 5,
-    skewX: "-15deg",
-  };
-
-  const tl = new TimelineMax();
-
-  tl.to(".container", 0.1, {
-    visibility: "visible",
-  })
-    .from(".one", 0.7, {
-      opacity: 0,
-      y: 10,
-    })
-    .from(".two", 0.4, {
-      opacity: 0,
-      y: 10,
-    })
-    .to(
-      ".one",
-      0.7,
-      {
-        opacity: 0,
-        y: 10,
-      },
-      "+=2.5"
-    )
-    .to(
-      ".two",
-      0.7,
-      {
-        opacity: 0,
-        y: 10,
-      },
-      "-=1"
-    )
-    .from(".three", 0.7, {
-      opacity: 0,
-      y: 10,
-      // scale: 0.7
-    })
-    .to(
-      ".three",
-      0.7,
-      {
-        opacity: 0,
-        y: 10,
-      },
-      "+=2"
-    )
-    .from(".four", 0.7, {
-      scale: 0.2,
-      opacity: 0,
-    })
-    .from(".fake-btn", 0.3, {
-      scale: 0.2,
-      opacity: 0,
-    })
-    .staggerTo(
-      ".hbd-chatbox span",
-      0.5,
-      {
-        visibility: "visible",
-      },
-      0.05
-    )
-    .to(".fake-btn", 0.1, {
-      backgroundColor: "rgb(127, 206, 248)",
-    })
-    .to(
-      ".four",
-      0.5,
-      {
-        scale: 0.2,
-        opacity: 0,
-        y: -150,
-      },
-      "+=0.7"
-    )
-    .from(".idea-1", 0.7, ideaTextTrans)
-    .to(".idea-1", 0.7, ideaTextTransLeave, "+=1.5")
-    .from(".idea-2", 0.7, ideaTextTrans)
-    .to(".idea-2", 0.7, ideaTextTransLeave, "+=1.5")
-    .from(".idea-3", 0.7, ideaTextTrans)
-    .to(".idea-3 strong", 0.5, {
-      scale: 1.2,
-      x: 10,
-      backgroundColor: "rgb(21, 161, 237)",
-      color: "#fff",
-    })
-    .to(".idea-3", 0.7, ideaTextTransLeave, "+=1.5")
-    .from(".idea-4", 0.7, ideaTextTrans)
-    .to(".idea-4", 0.7, ideaTextTransLeave, "+=1.5")
-    .from(
-      ".idea-5",
-      0.7,
-      {
-        rotationX: 15,
-        rotationZ: -10,
-        skewY: "-5deg",
-        y: 50,
-        z: 10,
-        opacity: 0,
-      },
-      "+=0.5"
-    )
-    .to(
-      ".idea-5 .smiley",
-      0.7,
-      {
-        rotation: 90,
-        x: 8,
-      },
-      "+=0.4"
-    )
-    .to(
-      ".idea-5",
-      0.7,
-      {
-        scale: 0.2,
-        opacity: 0,
-      },
-      "+=2"
-    )
-    .staggerFrom(
-      ".idea-6 span",
-      0.8,
-      {
-        scale: 3,
-        opacity: 0,
-        rotation: 15,
-        ease: Expo.easeOut,
-      },
-      0.2
-    )
-    .staggerTo(
-      ".idea-6 span",
-      0.8,
-      {
-        scale: 3,
-        opacity: 0,
-        rotation: -15,
-        ease: Expo.easeOut,
-      },
-      0.2,
-      "+=1"
-    )
-    .staggerFromTo(
-      ".baloons img",
-      2.5,
-      {
-        opacity: 0.9,
-        y: 1400,
-      },
-      {
-        opacity: 1,
-        y: -1000,
-      },
-      0.2
-    )
-    .from(
-      ".lydia-dp",
-      0.5,
-      {
-        scale: 3.5,
-        opacity: 0,
-        x: 25,
-        y: -25,
-        rotationZ: -45,
-      },
-      "-=2"
-    )
-    .from(".hat", 0.5, {
-      x: -100,
-      y: 350,
-      rotation: -180,
-      opacity: 0,
-    })
-    .staggerFrom(
-      ".wish-hbd span",
-      0.7,
-      {
-        opacity: 0,
-        y: -50,
-        // scale: 0.3,
-        rotation: 150,
-        skewX: "30deg",
-        ease: Elastic.easeOut.config(1, 0.5),
-      },
-      0.1
-    )
-    .staggerFromTo(
-      ".wish-hbd span",
-      0.7,
-      {
-        scale: 1.4,
-        rotationY: 150,
-      },
-      {
-        scale: 1,
-        rotationY: 0,
-        color: "#ff69b4",
-        ease: Expo.easeOut,
-      },
-      0.1,
-      "party"
-    )
-    .from(
-      ".wish h5",
-      0.5,
-      {
-        opacity: 0,
-        y: 10,
-        skewX: "-15deg",
-      },
-      "party"
-    )
-    .staggerTo(
-      ".eight svg",
-      1.5,
-      {
-        visibility: "visible",
-        opacity: 0,
-        scale: 80,
-        repeat: 3,
-        repeatDelay: 1.4,
-      },
-      0.3
-    )
-    .to(".six", 0.5, {
-      opacity: 0,
-      y: 30,
-      zIndex: "-1",
-    })
-    .staggerFrom(".nine p", 1, ideaTextTrans, 1.2)
-    .to(
-      ".last-smile",
-      0.5,
-      {
-        rotation: 90,
-      },
-      "+=1"
-    );
-
-  // tl.seek("currentStep");
-  // tl.timeScale(2);
-
-  // Restart Animation on click
-  const replyBtn = document.getElementById("replay");
-  replyBtn.addEventListener("click", () => {
-    // Hapus localStorage agar animasi bisa dimulai dari awal
-    localStorage.removeItem("hasInteracted");
-
-    // Reload halaman
-    window.location.reload();
+  document.querySelectorAll("[data-field]").forEach((node) => {
+    const key = node.dataset.field;
+    if (Object.hasOwn(config, key)) node.textContent = config[key];
   });
-};
+  elements.portrait.src = config.imagePath;
+  elements.portrait.alt = `Foto ${config.name}`;
+  document.title = `Selamat Ulang Tahun, ${config.name}! 🎉`;
+  elements.startSubtitle.textContent = `Ada pesan spesial untuk ${config.name}. Aktifkan suara, lalu buka saat kamu siap.`;
+}
 
-// Run fetch and animation in sequence
-// fetchData();
+function showError(message) {
+  elements.error.textContent = message;
+  elements.error.hidden = false;
+  window.setTimeout(() => { elements.error.hidden = true; }, 6000);
+}
+
+function setAudioButton() {
+  const playing = musicEnabled && !elements.audio.paused;
+  elements.audioToggle.textContent = playing ? "🔊" : "🔇";
+  elements.audioToggle.setAttribute("aria-label", playing ? "Matikan musik" : "Nyalakan musik");
+  elements.audioToggle.setAttribute("aria-pressed", String(!musicEnabled));
+}
+
+async function playAudio() {
+  if (!musicEnabled || !appStarted || document.hidden) return;
+  try { await elements.audio.play(); } catch (error) {
+    musicEnabled = false;
+    console.warn("Audio tidak dapat diputar:", error);
+  }
+  setAudioButton();
+}
+
+function animate(node, keyframes, options = {}) {
+  if (reduceMotion) {
+    Object.assign(node.style, keyframes.at(-1));
+    return Promise.resolve();
+  }
+  const animation = node.animate(keyframes, { duration: 650, easing: "cubic-bezier(.22, 1, .36, 1)", fill: "both", ...options });
+  return animation.finished.catch(() => undefined);
+}
+
+async function showScene(selector, progress, signal) {
+  if (signal.aborted) return null;
+  if (activeScene) {
+    await animate(activeScene, [{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: "translateY(-18px)" }], { duration: 380 });
+    activeScene.classList.remove("is-active");
+  }
+  activeScene = $(selector);
+  activeScene.classList.add("is-active");
+  elements.progress.style.width = `${progress}%`;
+  await animate(activeScene, [{ opacity: 0, transform: "translateY(18px) scale(.985)" }, { opacity: 1, transform: "translateY(0) scale(1)" }]);
+  return activeScene;
+}
+
+async function typeChat(signal) {
+  const node = $("#chatText");
+  const value = config.textInChatBox;
+  if (reduceMotion) { node.textContent = value; return; }
+  node.textContent = "";
+  node.classList.add("typing-caret");
+  for (const character of value) {
+    if (signal.aborted) break;
+    node.textContent += character;
+    await delay(character === " " ? 18 : 35, signal);
+  }
+  node.classList.remove("typing-caret");
+}
+
+async function playSequence() {
+  sequenceController?.abort();
+  sequenceController = new AbortController();
+  const { signal } = sequenceController;
+
+  await showScene("#sceneGreeting", 10, signal);
+  await delay(reduceMotion ? 1000 : 2800, signal);
+  if (signal.aborted) return;
+  await showScene("#sceneBirthday", 25, signal);
+  await delay(reduceMotion ? 1000 : 2200, signal);
+  if (signal.aborted) return;
+  await showScene("#sceneChat", 40, signal);
+  await typeChat(signal);
+  await delay(reduceMotion ? 700 : 1100, signal);
+
+  const ideas = [...document.querySelectorAll(".idea")];
+  ideas.forEach((idea) => {
+    idea.style.opacity = "0";
+    idea.style.visibility = "hidden";
+  });
+  await showScene("#sceneIdeas", 55, signal);
+  for (const [index, idea] of ideas.entries()) {
+    if (signal.aborted) return;
+    idea.style.visibility = "visible";
+    await animate(idea, [{ opacity: 0, transform: "translateY(18px)" }, { opacity: 1, transform: "translateY(0)" }]);
+    await delay(reduceMotion ? 850 : index === ideas.length - 1 ? 2000 : 1450, signal);
+    await animate(idea, [{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: "translateY(-18px)" }], { duration: 380 });
+    idea.style.visibility = "hidden";
+  }
+
+  if (signal.aborted) return;
+  createBalloons();
+  const finalScene = await showScene("#sceneFinal", 78, signal);
+  await Promise.all([
+    animate($(".portrait-wrap"), [{ opacity: 0, transform: "scale(.7) rotate(-5deg)" }, { opacity: 1, transform: "scale(1) rotate(0)" }], { duration: 900 }),
+    animate($(".final-copy"), [{ opacity: 0, transform: "translateY(20px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 900, delay: 250 }),
+  ]);
+  await delay(reduceMotion ? 1800 : 6500, signal);
+  if (signal.aborted || !finalScene) return;
+  await showOutro(signal);
+}
+
+async function showOutro(signal = new AbortController().signal) {
+  await showScene("#sceneOutro", 100, signal);
+  elements.skipButton.hidden = true;
+  elements.replayButton.focus({ preventScroll: true });
+}
+
+function createBalloons() {
+  const container = $("#balloons");
+  if (container.childElementCount) return;
+  const sources = ["img/ballon1.svg", "img/ballon2.svg", "img/ballon3.svg"];
+  for (let index = 0; index < 18; index += 1) {
+    const balloon = document.createElement("img");
+    balloon.className = "balloon";
+    balloon.src = sources[index % sources.length];
+    balloon.alt = "";
+    balloon.style.left = `${(index * 37) % 96}%`;
+    balloon.style.setProperty("--delay", `${(index % 7) * -1.1}s`);
+    balloon.style.setProperty("--duration", `${7 + (index % 5)}s`);
+    balloon.style.setProperty("--drift", `${(index % 2 ? 1 : -1) * (20 + index)}px`);
+    container.append(balloon);
+  }
+}
+
+async function startApp() {
+  appStarted = true;
+  elements.startScreen.hidden = true;
+  elements.experience.hidden = false;
+  elements.skipButton.hidden = false;
+  elements.audio.currentTime = 0;
+  await playAudio();
+  playSequence();
+}
+
+elements.startButton.addEventListener("click", startApp);
+elements.audioToggle.addEventListener("click", async () => {
+  musicEnabled = !musicEnabled;
+  if (musicEnabled) await playAudio(); else elements.audio.pause();
+  setAudioButton();
+});
+elements.skipButton.addEventListener("click", async () => {
+  sequenceController?.abort();
+  createBalloons();
+  await showOutro();
+});
+elements.replayButton.addEventListener("click", () => {
+  document.querySelectorAll(".idea").forEach((idea) => {
+    idea.style.opacity = "0";
+    idea.style.visibility = "hidden";
+  });
+  elements.skipButton.hidden = false;
+  elements.audio.currentTime = 0;
+  playAudio();
+  playSequence();
+});
+elements.portrait.addEventListener("error", () => {
+  elements.portrait.src = "img/favicon.png";
+  showError("Foto utama tidak ditemukan, jadi gambar cadangan digunakan.");
+}, { once: true });
+document.addEventListener("visibilitychange", () => {
+  if (!appStarted) return;
+  if (document.hidden) elements.audio.pause(); else playAudio();
+});
+
+loadConfig();

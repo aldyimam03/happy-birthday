@@ -1,245 +1,93 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Happy Birthday!!! :)</title>
-    <link
-      href="https://fonts.googleapis.com/css?family=Work+Sans:300,400"
-      rel="stylesheet"
-    />
-    <link rel="shortcut icon" type="image/png" href="img/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#fff7fb" />
+    <meta name="description" content="Sebuah kejutan ulang tahun kecil untuk seseorang yang spesial." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Ada kejutan ulang tahun untukmu 🎉" />
+    <meta property="og:description" content="Buka untuk melihat pesan spesialmu." />
+    <meta property="og:image" content="img/sarah.jpeg" />
+    <title>Ada Kejutan Untukmu 🎉</title>
+    <link rel="icon" type="image/png" href="img/favicon.png" />
     <link rel="stylesheet" href="style/style.css" />
   </head>
-
   <body>
-    <!-- START SCREEN UNTUK IZIN -->
-    <div
-      id="startScreen"
-      style="
-        position: fixed;
-        inset: 0;
-        background: #fff;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-      "
-    >
-      <button
-        id="startButton"
-        style="font-size: 1.5rem; padding: 1rem 2rem; cursor: pointer"
-      >
-        Happy Birthday INTAN 🎉
-      </button>
-    </div>
+    <main id="app">
+      <section id="startScreen" class="start-screen" aria-labelledby="startTitle">
+        <div class="start-card">
+          <span class="start-emoji" aria-hidden="true">🎁</span>
+          <p class="eyebrow">Sebuah kejutan kecil</p>
+          <h1 id="startTitle">Ada sesuatu untukmu</h1>
+          <p id="startSubtitle">Pastikan suaramu aktif, lalu buka saat kamu siap.</p>
+          <button id="startButton" class="primary-button" type="button">Buka kejutan <span aria-hidden="true">✨</span></button>
+        </div>
+      </section>
 
-    <!--AUDIO-->
-    <audio
-      id="birthdayAudio"
-      src="assets/audio/birthday.mp3"
-      preload="auto"
-      muted
-    ></audio>
+      <section id="experience" class="experience" aria-live="polite" hidden>
+        <div class="controls" aria-label="Kontrol kejutan">
+          <button id="audioToggle" class="icon-button" type="button" aria-label="Matikan musik" aria-pressed="false">🔊</button>
+          <button id="skipButton" class="text-button" type="button">Lewati</button>
+        </div>
 
-    <!-- SISA KONTEN -->
-    <div class="container" style="display: none">
-      <div class="container">
-        <div class="one">
-          <h1 class="one">
-            <span data-node-name="greeting">Hey</span>
-            <span data-node-name="name">Lydia</span>
-          </h1>
-          <p class="two" data-node-name="greetingText">
-            I really like your name btw!
-          </p>
-        </div>
-        <div class="three">
-          <p data-node-name="text1">It's your birthday!!! :D</p>
-        </div>
-        <div class="four">
-          <div class="text-box">
-            <p class="hbd-chatbox" data-node-name="textInChatBox">
-              Happy birthday to you!! Yeee! Many many happy blah...
-            </p>
-            <p class="fake-btn" data-node-name="sendButtonLabel">Send</p>
+        <div id="sceneGreeting" class="scene">
+          <div class="scene-content">
+            <p class="eyebrow" data-field="greeting">Hai...</p>
+            <h2 data-field="name">Sarah Aqila Rahman</h2>
+            <p data-field="greetingText">Aku suka sekali namamu!</p>
           </div>
         </div>
-        <div class="five">
-          <p class="idea-1" data-node-name="text2">
-            That's what I was going to do.
-          </p>
-          <p class="idea-2" data-node-name="text3">But then I stopped.</p>
-          <p class="idea-3">
-            <span data-node-name="text4"
-              >I realised, I wanted to do something</span
-            >
-            <strong data-node-name="text4Adjective">special</strong>.
-          </p>
-          <p class="idea-4" data-node-name="text5Entry">Because,</p>
-          <p class="idea-5">
-            <span data-node-name="text5Content">You are Special</span>
-            <span class="smiley" data-node-name="smiley">:)</span>
-          </p>
-          <p class="idea-6">
-            <span data-node-name="bigTextPart1">S</span>
-            <span data-node-name="bigTextPart2">O</span>
-          </p>
-        </div>
-        <div class="six">
-          <img
-            src="img/pinkan.png"
-            alt=""
-            class="lydia-dp"
-            data-node-name="imagePath"
-          />
-          <img src="img/hat.svg" alt="" class="hat" />
-          <div class="wish">
-            <h3 class="wish-hbd" data-node-name="wishHeading">
-              Happy Birthday!
-            </h3>
-            <h5 data-node-name="wishText">
-              May the js.prototypes always be with you! ;)
-            </h5>
+
+        <div id="sceneBirthday" class="scene">
+          <div class="scene-content">
+            <p class="big-copy" data-field="text1">Ini hari ulang tahunmu! 🎉</p>
           </div>
         </div>
-        <div class="seven">
-          <div class="baloons">
-            <img src="img/ballon2.svg" alt="" />
-            <img src="img/ballon1.svg" alt="" />
-            <img src="img/ballon3.svg" alt="" />
-            <img src="img/ballon1.svg" alt="" />
-            <img src="img/ballon2.svg" alt="" />
-            <img src="img/ballon3.svg" alt="" />
-            <img src="img/ballon2.svg" alt="" />
-            <img src="img/ballon3.svg" alt="" />
-            <img src="img/ballon1.svg" alt="" />
-            <img src="img/ballon2.svg" alt="" />
-            <img src="img/ballon3.svg" alt="" />
-            <img src="img/ballon2.svg" alt="" />
-            <img src="img/ballon1.svg" alt="" />
-            <img src="img/ballon3.svg" alt="" />
-            <img src="img/ballon2.svg" alt="" />
-            <img src="img/ballon3.svg" alt="" />
-            <img src="img/ballon1.svg" alt="" />
-            <img src="img/ballon2.svg" alt="" />
-            <img src="img/ballon1.svg" alt="" />
-            <img src="img/ballon3.svg" alt="" />
-            <img src="img/ballon3.svg" alt="" />
-            <img src="img/ballon1.svg" alt="" />
-            <img src="img/ballon2.svg" alt="" />
-            <img src="img/ballon3.svg" alt="" />
-            <img src="img/ballon2.svg" alt="" />
-            <img src="img/ballon1.svg" alt="" />
-            <img src="img/ballon3.svg" alt="" />
-            <img src="img/ballon2.svg" alt="" />
-            <img src="img/ballon3.svg" alt="" />
-            <img src="img/ballon1.svg" alt="" />
-            <img src="img/ballon2.svg" alt="" />
-            <img src="img/ballon1.svg" alt="" />
-            <img src="img/ballon3.svg" alt="" />
+
+        <div id="sceneChat" class="scene">
+          <div class="chat-card">
+            <p id="chatText" data-field="textInChatBox">Selamat ulang tahun! Semoga panjang umur dan bahagia selalu...</p>
+            <button class="send-button" type="button" tabindex="-1" aria-hidden="true" data-field="sendButtonLabel">Kirim</button>
           </div>
         </div>
-        <div class="eight">
-          <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="20" cy="20" r="20" />
-          </svg>
-          <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="20" cy="20" r="20" />
-          </svg>
-          <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="20" cy="20" r="20" />
-          </svg>
-          <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="20" cy="20" r="20" />
-          </svg>
-          <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="20" cy="20" r="20" />
-          </svg>
-          <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="20" cy="20" r="20" />
-          </svg>
-          <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="20" cy="20" r="20" />
-          </svg>
-          <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="20" cy="20" r="20" />
-          </svg>
-          <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="20" cy="20" r="20" />
-          </svg>
+
+        <div id="sceneIdeas" class="scene">
+          <div class="scene-content idea-stack">
+            <p class="idea" data-field="text2">Awalnya, hanya itu yang ingin kukirim.</p>
+            <p class="idea" data-field="text3">Tapi kemudian aku berhenti sejenak.</p>
+            <p class="idea"><span data-field="text4">Aku ingin membuat sesuatu yang</span> <strong data-field="text4Adjective">spesial</strong>.</p>
+            <p class="idea"><span data-field="text5Entry">Karena,</span><br /><span class="highlight" data-field="text5Content">kamu memang spesial</span> <span data-field="smiley">:)</span></p>
+          </div>
         </div>
-        <div class="nine">
-          <p data-node-name="outroText">
-            Okay, now come back and tell me if you liked it.
-          </p>
-          <p id="replay" data-node-name="replayText">
-            Or click, if you want to watch it again.
-          </p>
-          <p class="last-smile" data-node-name="outroSmiley">:)</p>
+
+        <div id="sceneFinal" class="scene final-scene">
+          <div id="balloons" class="balloons" aria-hidden="true"></div>
+          <div class="portrait-wrap">
+            <img id="portrait" class="portrait" src="img/sarah.jpeg" alt="Foto Sarah Aqila Rahman" data-image-field="imagePath" />
+            <img class="hat" src="img/hat.svg" alt="" aria-hidden="true" />
+          </div>
+          <div class="final-copy">
+            <h2 data-field="wishHeading">Selamat Ulang Tahun!</h2>
+            <p data-field="wishText">Semoga apa yang sedang kamu perjuangkan bisa segera tercapai 🙌🏻</p>
+          </div>
         </div>
-      </div>
-    </div>
+
+        <div id="sceneOutro" class="scene outro-scene">
+          <div class="scene-content">
+            <span class="outro-emoji" aria-hidden="true">💝</span>
+            <p data-field="outroText">Sekarang, bilang padaku kalau kamu menyukainya.</p>
+            <button id="replayButton" class="primary-button" type="button" data-field="replayText">Putar sekali lagi</button>
+            <p class="smile" data-field="outroSmiley">:)</p>
+          </div>
+        </div>
+
+        <div id="progress" class="progress" aria-hidden="true"><span></span></div>
+      </section>
+
+      <div id="errorMessage" class="error-message" role="alert" hidden></div>
+      <audio id="birthdayAudio" src="assets/audio/birthday.mp3" preload="metadata" loop></audio>
+    </main>
+    <script src="script/main.js" defer></script>
   </body>
-
-  <!-- SCRIPT LOGIKA PLAY AUDIO -->
-  <script>
-  const audio = document.getElementById("birthdayAudio");
-  const startScreen = document.getElementById("startScreen");
-  const startButton = document.getElementById("startButton");
-  const container = document.querySelector(".container");
-
-  function startApp() {
-    startScreen.style.display = "none";
-    container.style.display = "block";
-
-    audio.muted = false;
-    audio.play().catch((e) => {
-      console.log("Gagal autoplay:", e);
-    });
-
-    // Panggil fetchData() untuk mulai load data dan animasi
-    if (typeof fetchData === "function") {
-      fetchData();
-    }
-  }
-
-  showStartScreen();
-
-  startButton.addEventListener("click", () => {
-    localStorage.setItem("hasInteracted", "true");
-    startApp();
-  });
-
-  function showStartScreen() {
-    startScreen.style.display = "flex";
-    container.style.display = "none";
-    audio.pause();
-    audio.currentTime = 0;
-    audio.muted = true;
-  }
-
-  // Pause audio saat tab tidak aktif, resume saat kembali
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      if (!audio.paused) {
-        audio.pause();
-      }
-    } else {
-      audio.play().catch((e) => {
-        console.log("Tidak bisa melanjutkan audio:", e);
-      });
-    }
-  });
-</script>
-
-
-  <script type="application/javascript" src="script/main.js"></script>
-
-  <!-- JS LIBRARY -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.20.3/TweenMax.min.js"></script>
-
-  <!-- SCRIPT LAIN -->
-  <script type="application/javascript" src="script/main.js"></script>
 </html>
