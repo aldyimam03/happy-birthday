@@ -90,6 +90,7 @@ const elements = {
   portraits: [...document.querySelectorAll(".portrait-bubble")],
   chatSendButton: $("#chatSendButton"),
   chatCursorHint: $("#chatCursorHint"),
+  sparkles: $("#sparkles"),
 };
 
 let config = { ...DEFAULT_CONFIG };
@@ -102,6 +103,7 @@ let progressAnimation = null;
 let reviewSlides = [];
 let reviewIndex = -1;
 let reviewReady = false;
+let audioFadeFrame = 0;
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 async function loadConfig() {
@@ -140,20 +142,20 @@ async function loadConfig() {
 
 function buildReviewSlides() {
   reviewSlides = [
-    { type: "text", title: `${config.greeting} ${config.name}`, body: config.greetingText },
-    { type: "text", title: config.text1 },
-    { type: "text", title: "A little birthday message", body: config.textInChatBox },
-    { type: "text", title: config.text2 },
-    { type: "text", title: config.text3 },
-    { type: "text", title: `${config.text4} ${config.text4Adjective}.` },
-    { type: "text", title: config.text5Entry, body: `${config.text5Content} ${config.smiley}` },
+    { type: "greeting", greeting: config.greeting, name: config.name, body: config.greetingText },
+    { type: "headline", title: config.text1, variant: "pop" },
+    { type: "chat", body: config.textInChatBox, buttonLabel: config.sendButtonLabel },
+    { type: "headline", title: config.text2, variant: "rise" },
+    { type: "headline", title: config.text3, variant: "rise" },
+    { type: "headline", title: `${config.text4} ${config.text4Adjective}.`, variant: "rise" },
+    { type: "headline", title: config.text5Entry, body: `${config.text5Content} ${config.smiley}`, variant: "rise", highlightBody: true },
     ...config.galleryPhotos.map((source, index) => ({
       type: "photo",
       source,
       caption: config.galleryCaptions[index] || `Memory ${index + 1}`,
       focus: config.galleryFocus[index] || "50% 50%",
     })),
-    { type: "text", title: config.galleryMore },
+    { type: "headline", title: config.galleryMore, variant: "alternate", wide: true },
     { type: "final" },
   ];
   reviewIndex = reviewSlides.length;
@@ -161,6 +163,20 @@ function buildReviewSlides() {
 
 function renderReviewSlide(slide) {
   elements.reviewContent.replaceChildren();
+  if (slide.type === "greeting") {
+    const card = document.createElement("article");
+    card.className = "review-text-card review-greeting-card";
+    const eyebrow = document.createElement("p");
+    eyebrow.className = "eyebrow review-greeting";
+    eyebrow.textContent = slide.greeting;
+    const title = document.createElement("h2");
+    title.textContent = slide.name;
+    const body = document.createElement("p");
+    body.textContent = slide.body;
+    card.append(eyebrow, title, body);
+    elements.reviewContent.append(card);
+    return;
+  }
   if (slide.type === "photo") {
     const figure = document.createElement("figure");
     figure.className = "review-photo-card";
@@ -180,10 +196,15 @@ function renderReviewSlide(slide) {
     return;
   }
   if (slide.type === "final") {
+    elements.reviewContent.classList.add("is-fullscreen-final");
     const wrapper = document.createElement("div");
     wrapper.className = "review-final";
+    const balloons = $("#balloons").cloneNode(true);
+    const sparkles = $("#sparkles")?.cloneNode(true);
     const portraits = $(".portrait-wrap").cloneNode(true);
     const copy = $(".final-copy").cloneNode(true);
+    balloons.removeAttribute("id");
+    sparkles?.removeAttribute("id");
     portraits.querySelectorAll("[id]").forEach((node) => node.removeAttribute("id"));
     portraits.querySelectorAll(".portrait-bubble, .hat").forEach((node) => {
       node.hidden = false;
@@ -193,21 +214,154 @@ function renderReviewSlide(slide) {
     copy.hidden = false;
     copy.style.opacity = "1";
     copy.querySelectorAll(".text-piece").forEach((piece) => { piece.style.opacity = "1"; });
+    wrapper.append(balloons);
+    if (sparkles) wrapper.append(sparkles);
     wrapper.append(portraits, copy);
     elements.reviewContent.append(wrapper);
     return;
   }
+  elements.reviewContent.classList.remove("is-fullscreen-final");
+  if (slide.type === "chat") {
+    const card = document.createElement("article");
+    card.className = "chat-card review-chat-card";
+    const body = document.createElement("p");
+    body.className = "review-chat-text";
+    body.textContent = slide.body;
+    const button = document.createElement("button");
+    button.className = "send-button";
+    button.type = "button";
+    button.disabled = true;
+    button.textContent = slide.buttonLabel;
+    const cursor = document.createElement("div");
+    cursor.className = "chat-cursor-hint";
+    cursor.setAttribute("aria-hidden", "true");
+    cursor.innerHTML = '<span class="chat-cursor-arrow">👆</span><span class="chat-cursor-click"></span>';
+    card.append(body, button, cursor);
+    elements.reviewContent.append(card);
+    return;
+  }
   const card = document.createElement("article");
-  card.className = "review-text-card";
+  card.className = `review-text-card${slide.wide ? " review-wide-card" : ""}`;
   const title = document.createElement("h2");
   title.textContent = slide.title;
   card.append(title);
   if (slide.body) {
     const body = document.createElement("p");
+    if (slide.highlightBody) body.classList.add("review-highlight-body");
     body.textContent = slide.body;
     card.append(body);
   }
   elements.reviewContent.append(card);
+}
+
+function splitAnimatedNode(node, mode = "words") {
+  if (!node) return;
+  const value = node.textContent.trim();
+  node.setAttribute("aria-label", value);
+  node.replaceChildren();
+  const parts = mode === "letters" ? [...value] : value.split(/(\s+)/);
+  parts.forEach((part) => {
+    const span = document.createElement("span");
+    span.setAttribute("aria-hidden", "true");
+    if (/^\s+$/.test(part)) {
+      span.className = "text-space";
+      span.textContent = " ";
+    } else {
+      span.className = "text-piece";
+      span.textContent = part;
+    }
+    node.append(span);
+  });
+}
+
+function animateTextPiecesIn(root, selector, variant = "rise") {
+  const pieces = [...root.querySelectorAll(`${selector} .text-piece`)];
+  const starts = {
+    rise: { opacity: 0, transform: "translateY(24px) rotateX(-55deg)" },
+    pop: { opacity: 0, transform: "scale(.35) rotate(-7deg)" },
+    alternate: null,
+    letters: { opacity: 0, transform: "translateY(-30px) rotate(12deg) scale(.7)" },
+    name: null,
+  };
+  return Promise.all(pieces.map((piece, index) => {
+    const start = variant === "alternate"
+      ? { opacity: 0, transform: `translateX(${index % 2 ? 30 : -30}px) rotate(${index % 2 ? 3 : -3}deg)` }
+      : variant === "name"
+        ? { opacity: 0, transform: `translate3d(${index % 2 ? 16 : -16}px, -18px, 0) scale(${1.9 - Math.min(index * 0.035, 0.45)}) rotate(${index % 2 ? 14 : -14}deg)` }
+        : starts[variant];
+    return animate(piece, [start, { opacity: 1, transform: "translate(0) rotate(0) scale(1)" }], {
+      duration: variant === "letters" ? 520 : variant === "name" ? 560 : 620,
+      delay: index * (variant === "letters" ? 55 : variant === "name" ? 44 : 110),
+      easing: variant === "pop" || variant === "letters" || variant === "name" ? "cubic-bezier(.34, 1.56, .64, 1)" : "cubic-bezier(.22, 1, .36, 1)",
+    });
+  }));
+}
+
+async function playReviewSlideAnimation(slide) {
+  const root = elements.reviewContent;
+  if (slide.type === "greeting") {
+    const greeting = root.querySelector(".review-greeting");
+    const name = root.querySelector("h2");
+    const body = root.querySelector("p:last-child");
+    if (greeting) await animate(greeting, [{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 260 });
+    if (name) {
+      splitAnimatedNode(name, "letters");
+      await animateTextPiecesIn(root, "h2", "name");
+    }
+    if (body) await animate(body, [{ opacity: 0, transform: "translateY(16px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 420 });
+    return;
+  }
+  if (slide.type === "headline") {
+    const title = root.querySelector("h2");
+    const body = root.querySelector("p");
+    if (title) {
+      splitAnimatedNode(title, slide.variant === "alternate" ? "words" : "words");
+      await animateTextPiecesIn(root, "h2", slide.variant || "rise");
+    }
+    if (body) await animate(body, [{ opacity: 0, transform: "translateY(18px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 420, delay: 100 });
+    return;
+  }
+  if (slide.type === "chat") {
+    const card = root.querySelector(".review-chat-card");
+    const body = root.querySelector(".review-chat-text");
+    const button = root.querySelector(".send-button");
+    const cursor = root.querySelector(".chat-cursor-hint");
+    if (!card || !body || !button || !cursor) return;
+    body.textContent = "";
+    body.classList.add("typing-caret");
+    for (const character of slide.body) {
+      body.textContent += character;
+      // eslint-disable-next-line no-await-in-loop
+      await delay(character === " " ? 14 : 26);
+    }
+    body.classList.remove("typing-caret");
+    card.classList.add("is-ready");
+    button.classList.add("is-visible");
+    await animate(card, [
+      { transform: "translateY(0) scale(1)" },
+      { transform: "translateY(-3px) scale(1.018)", offset: .48 },
+      { transform: "translateY(0) scale(1)" },
+    ], { duration: 420, easing: "cubic-bezier(.34, 1.56, .64, 1)" });
+    cursor.classList.add("is-visible");
+    await delay(520);
+    button.classList.add("is-sent");
+    await animate(button, [
+      { transform: "translateY(0) scale(1)" },
+      { transform: "translateY(1px) scale(.93)", offset: .45 },
+      { transform: "translateY(0) scale(1)" },
+    ], { duration: 240, easing: "cubic-bezier(.34, 1.56, .64, 1)" });
+    cursor.classList.remove("is-visible");
+    return;
+  }
+  if (slide.type === "photo") {
+    const card = root.querySelector(".review-photo-card");
+    if (card) await animate(card, [{ opacity: 0, transform: "translateY(18px) scale(.96)" }, { opacity: 1, transform: "translateY(0) scale(1)" }], { duration: 520 });
+    return;
+  }
+  if (slide.type === "final") {
+    const final = root.querySelector(".review-final");
+    if (final) await animate(final, [{ opacity: 0, transform: "translateY(18px) scale(.97)" }, { opacity: 1, transform: "translateY(0) scale(1)" }], { duration: 560 });
+  }
 }
 
 function showOutroForReview() {
@@ -246,12 +400,14 @@ function navigateReview(direction) {
   elements.reviewScene.hidden = false;
   elements.reviewScene.classList.add("is-active");
   activeScene = elements.reviewScene;
-  renderReviewSlide(reviewSlides[reviewIndex]);
+  const slide = reviewSlides[reviewIndex];
+  renderReviewSlide(slide);
   setReviewProgress(((reviewIndex + 1) / (reviewSlides.length + 1)) * 100);
   animate(elements.reviewContent, [
     { opacity: 0, transform: `translateX(${direction > 0 ? 24 : -24}px) scale(.985)` },
     { opacity: 1, transform: "translateX(0) scale(1)" },
   ], { duration: 360 });
+  playReviewSlideAnimation(slide);
 }
 
 function splitAnimatedText(selector, mode = "words") {
@@ -440,9 +596,52 @@ function applyVolume(volume) {
   setAudioButton();
 }
 
-async function playAudio() {
+function fadeAudioTo(targetVolume, duration = 800) {
+  window.cancelAnimationFrame(audioFadeFrame);
+  const startVolume = elements.audio.volume;
+  const nextVolume = Math.max(0, Math.min(1, targetVolume));
+  if (reduceMotion || duration <= 0) {
+    elements.audio.volume = nextVolume;
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    const startedAt = performance.now();
+    const step = (now) => {
+      const progress = Math.min(1, (now - startedAt) / duration);
+      const eased = 1 - ((1 - progress) ** 3);
+      elements.audio.volume = startVolume + ((nextVolume - startVolume) * eased);
+      if (progress < 1) {
+        audioFadeFrame = requestAnimationFrame(step);
+      } else {
+        resolve();
+      }
+    };
+    audioFadeFrame = requestAnimationFrame(step);
+  });
+}
+
+async function stopAudioWithFade() {
+  await fadeAudioTo(0, 260);
+  elements.audio.pause();
+  elements.audio.volume = currentVolume;
+}
+
+async function playAudio({ fadeIn = false, targetVolume = currentVolume } = {}) {
   if (!musicEnabled || !appStarted || document.hidden) return;
-  try { await elements.audio.play(); } catch (error) {
+  const desiredVolume = Math.max(0, Math.min(1, targetVolume));
+  try {
+    if (fadeIn && !reduceMotion) {
+      elements.audio.volume = 0;
+    } else {
+      elements.audio.volume = desiredVolume;
+    }
+    await elements.audio.play();
+    if (fadeIn && !reduceMotion) {
+      await fadeAudioTo(desiredVolume, 1200);
+    } else {
+      elements.audio.volume = desiredVolume;
+    }
+  } catch (error) {
     musicEnabled = false;
     console.warn("Audio tidak dapat diputar:", error);
   }
@@ -527,6 +726,7 @@ function resetRuntimeAnimations() {
   const chatNode = $("#chatText");
   chatNode.textContent = "";
   chatNode.classList.remove("typing-caret");
+  $("#sceneChat .chat-card")?.classList.remove("is-ready");
   elements.chatSendButton.disabled = true;
   elements.chatSendButton.classList.remove("is-visible", "is-sent");
   elements.chatCursorHint.classList.remove("is-visible");
@@ -574,6 +774,16 @@ async function typeChat(signal) {
 
 async function showChatSendPrompt(signal) {
   if (signal.aborted) return;
+  const chatCard = $("#sceneChat .chat-card");
+  chatCard?.classList.add("is-ready");
+  if (!reduceMotion && chatCard) {
+    await animate(chatCard, [
+      { transform: "translateY(0) scale(1)" },
+      { transform: "translateY(-3px) scale(1.018)", offset: .48 },
+      { transform: "translateY(0) scale(1)" },
+    ], { duration: 420, easing: "cubic-bezier(.34, 1.56, .64, 1)" });
+  }
+  if (signal.aborted) return;
   elements.chatSendButton.disabled = false;
   elements.chatSendButton.classList.add("is-visible");
   if (!reduceMotion) {
@@ -603,6 +813,23 @@ async function autoSendChat(signal) {
   elements.chatCursorHint.classList.remove("is-visible");
   elements.chatSendButton.disabled = true;
   setProgressPaused(false);
+}
+
+function createSparkles() {
+  const container = elements.sparkles;
+  if (!container || container.childElementCount) return;
+  for (let index = 0; index < 24; index += 1) {
+    const sparkle = document.createElement("span");
+    sparkle.className = "sparkle";
+    sparkle.style.left = `${4 + ((index * 13) % 92)}%`;
+    sparkle.style.top = `${8 + ((index * 17) % 76)}%`;
+    sparkle.style.setProperty("--sparkle-delay", `${(index % 8) * -0.8}s`);
+    sparkle.style.setProperty("--sparkle-duration", `${4.8 + (index % 5) * 0.85}s`);
+    sparkle.style.setProperty("--sparkle-x", `${index % 2 ? 10 + index : -8 - index}px`);
+    sparkle.style.setProperty("--sparkle-y", `${-16 - ((index % 4) * 9)}px`);
+    sparkle.style.opacity = String(0.5 + ((index % 4) * 0.08));
+    container.append(sparkle);
+  }
 }
 
 async function playGallery(signal) {
@@ -704,6 +931,7 @@ async function playSequence() {
   await playGallery(signal);
   if (signal.aborted) return;
   createBalloons();
+  createSparkles();
   const portraitWrap = $(".portrait-wrap");
   const finalCopy = $(".final-copy");
   const portraitBubbles = [...document.querySelectorAll(".portrait-bubble")];
@@ -717,6 +945,9 @@ async function playSequence() {
   partyHat.style.opacity = "0";
   finalCopy.hidden = true;
   finalCopy.style.opacity = "0";
+  if (musicEnabled) {
+    fadeAudioTo(Math.min(1, currentVolume + 0.18), reduceMotion ? 0 : 1200);
+  }
   const finalScene = await showScene("#sceneFinal", 84, signal);
   for (const [index, portrait] of portraitBubbles.entries()) {
     if (signal.aborted) return;
@@ -734,7 +965,10 @@ async function playSequence() {
   ]);
   await animateTextPieces('[data-field="wishHeading"]', "letters");
   launchConfetti();
-  await delay(reduceMotion ? 1800 : 6500, signal);
+  if (musicEnabled && !signal.aborted) {
+    window.setTimeout(() => { fadeAudioTo(currentVolume, 1800); }, reduceMotion ? 0 : 1800);
+  }
+  await delay(reduceMotion ? 2600 : 9800, signal);
   if (signal.aborted || !finalScene) return;
   await showOutro(signal);
 }
@@ -752,33 +986,31 @@ async function showOutro(signal = new AbortController().signal) {
 function createBalloons() {
   const container = $("#balloons");
   if (container.childElementCount) return;
+  const colors = ["#ff6b9a", "#ffb347", "#6ccff6", "#7bd389", "#b39ddb", "#ff8fab", "#5da9e9", "#9adf7f"];
   const sources = ["img/ballon1.svg", "img/ballon2.svg", "img/ballon3.svg"];
-  const colorVariants = [
-    "hue-rotate(0deg) saturate(1)",
-    "hue-rotate(35deg) saturate(1.12)",
-    "hue-rotate(75deg) saturate(1.18)",
-    "hue-rotate(120deg) saturate(1.15)",
-    "hue-rotate(185deg) saturate(1.08)",
-    "hue-rotate(245deg) saturate(1.14)",
-    "hue-rotate(300deg) saturate(1.1)",
-    "hue-rotate(330deg) saturate(1.06)",
-  ];
-  for (let index = 0; index < 60; index += 1) {
-    const balloon = document.createElement("img");
-    balloon.className = "balloon";
-    balloon.src = sources[index % sources.length];
-    balloon.alt = "";
+  const fragment = document.createDocumentFragment();
+  for (let index = 0; index < 100; index += 1) {
+    const useSvgBalloon = index % 4 === 0;
+    const balloon = document.createElement(useSvgBalloon ? "img" : "span");
+    balloon.className = `balloon${useSvgBalloon ? " balloon-svg" : " balloon-shape"}`;
+    if (useSvgBalloon) {
+      balloon.src = sources[index % sources.length];
+      balloon.alt = "";
+    }
     balloon.style.left = `${(index * 17) % 98}%`;
-    balloon.style.setProperty("--delay", `${(index % 9) * -0.95}s`);
-    balloon.style.setProperty("--duration", `${6.5 + (index % 6)}s`);
-    balloon.style.setProperty("--drift", `${(index % 2 ? 1 : -1) * (18 + (index * 1.5))}px`);
-    balloon.style.setProperty("--lift", `${122 + (index % 4) * 6}vh`);
-    balloon.style.setProperty("--balloon-scale", `${0.82 + (index % 5) * 0.08}`);
-    balloon.style.setProperty("--balloon-filter", colorVariants[index % colorVariants.length]);
+    balloon.style.setProperty("--delay", `${(index % 12) * -0.62}s`);
+    balloon.style.setProperty("--duration", `${5.2 + (index % 5) * 0.8}s`);
+    balloon.style.setProperty("--drift", `${(index % 2 ? 1 : -1) * (10 + index)}px`);
+    balloon.style.setProperty("--lift", `${150 + (index % 4) * 10}vh`);
+    balloon.style.setProperty("--balloon-scale", `${0.58 + (index % 6) * 0.09}`);
+    balloon.style.setProperty("--balloon-color", colors[index % colors.length]);
     balloon.style.zIndex = String(1 + (index % 4));
-    balloon.style.opacity = String(0.56 + ((index % 5) * 0.08));
-    container.append(balloon);
+    balloon.style.opacity = String(0.42 + ((index % 6) * 0.08));
+    balloon.classList.toggle("is-back", index % 6 === 0 || index % 6 === 3);
+    balloon.classList.toggle("is-front", index % 5 === 0);
+    fragment.append(balloon);
   }
+  container.append(fragment);
 }
 
 function launchConfetti() {
@@ -880,7 +1112,7 @@ async function startApp() {
   elements.experience.hidden = false;
   elements.skipButton.hidden = false;
   elements.audio.currentTime = 0;
-  await playAudio();
+  await playAudio({ fadeIn: true });
   await playOpeningTransition();
   elements.startScreen.hidden = true;
   elements.startScreen.classList.remove("is-opening");
@@ -890,7 +1122,8 @@ async function startApp() {
 elements.startButton.addEventListener("click", startApp);
 elements.audioToggle.addEventListener("click", async () => {
   musicEnabled = !musicEnabled;
-  if (musicEnabled) await playAudio(); else elements.audio.pause();
+  if (musicEnabled) await playAudio({ fadeIn: true });
+  else await stopAudioWithFade();
   setAudioButton();
 });
 elements.volumeSlider?.addEventListener("input", async (event) => {
@@ -898,7 +1131,7 @@ elements.volumeSlider?.addEventListener("input", async (event) => {
   const wasMuted = !musicEnabled;
   applyVolume(nextVolume);
   if (musicEnabled) {
-    await playAudio();
+    await playAudio({ targetVolume: currentVolume });
   } else if (!wasMuted) {
     elements.audio.pause();
   }
@@ -920,7 +1153,7 @@ elements.replayButton.addEventListener("click", () => {
   });
   elements.skipButton.hidden = false;
   elements.audio.currentTime = 0;
-  playAudio();
+  playAudio({ fadeIn: true });
   playSequence();
 });
 elements.reviewPrevious.addEventListener("click", () => navigateReview(-1));
@@ -956,7 +1189,11 @@ elements.portraits.forEach((portrait) => {
 });
 document.addEventListener("visibilitychange", () => {
   if (!appStarted) return;
-  if (document.hidden) elements.audio.pause(); else playAudio();
+  if (document.hidden) {
+    elements.audio.pause();
+  } else {
+    playAudio({ fadeIn: true });
+  }
 });
 
 applyVolume(currentVolume);
