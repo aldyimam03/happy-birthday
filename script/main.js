@@ -56,6 +56,8 @@ const elements = {
   startScreen: $("#startScreen"),
   startButton: $("#startButton"),
   startSubtitle: $("#startSubtitle"),
+  openingGift: $("#openingGift"),
+  giftLid: $("#giftLid"),
   loader: $("#loader"),
   loaderBar: $("#loaderBar"),
   loaderText: $("#loaderText"),
@@ -463,13 +465,66 @@ function launchConfetti() {
   requestAnimationFrame(draw);
 }
 
+async function playOpeningTransition() {
+  const glow = $(".gift-glow");
+  const sparks = [...document.querySelectorAll(".gift-spark")];
+  const startContent = [
+    $(".start-card > .eyebrow"),
+    $(".start-card > h1"),
+    elements.startSubtitle,
+    elements.loader,
+    elements.startButton,
+  ];
+
+  await Promise.all([
+    ...startContent.map((node) => animate(node, [
+      { opacity: 1, transform: "translateY(0)" },
+      { opacity: 0, transform: "translateY(10px)" },
+    ], { duration: reduceMotion ? 80 : 320 })),
+    animate(elements.openingGift, [
+      { opacity: 1, transform: "translateY(0) scale(1)" },
+      { opacity: 1, transform: "translateY(-7px) scale(1.05)", offset: .62 },
+      { opacity: 1, transform: "translateY(0) scale(1)" },
+    ], { duration: reduceMotion ? 80 : 420 }),
+  ]);
+
+  await Promise.all([
+    animate(elements.giftLid, [
+      { transform: "translateY(0) rotate(0)" },
+      { transform: "translateY(-46px) translateX(13px) rotate(18deg)" },
+    ], { duration: reduceMotion ? 100 : 520, easing: "cubic-bezier(.34, 1.56, .64, 1)" }),
+    animate(glow, [{ opacity: 0, transform: "scale(.3)" }, { opacity: 1, transform: "scale(3.2)" }], { duration: reduceMotion ? 100 : 600 }),
+    ...sparks.map((spark, index) => animate(spark, [
+      { opacity: 0, transform: "translate(0, 0) scale(.4) rotate(0)" },
+      { opacity: 1, transform: `translate(var(--spark-x), var(--spark-y)) scale(1) rotate(${index % 2 ? 40 : -40}deg)`, offset: .7 },
+      { opacity: 0, transform: `translate(var(--spark-x), calc(var(--spark-y) - 18px)) scale(.7)` },
+    ], { duration: reduceMotion ? 100 : 850, delay: reduceMotion ? 0 : index * 70 })),
+  ]);
+
+  await delay(reduceMotion ? 50 : 260);
+  await Promise.all([
+    animate(elements.openingGift, [
+      { opacity: 1, transform: "scale(1)" },
+      { opacity: 0, transform: "scale(10)" },
+    ], { duration: reduceMotion ? 120 : 800, easing: "cubic-bezier(.7, 0, .84, 0)" }),
+    animate(elements.startScreen, [
+      { opacity: 1, transform: "scale(1)" },
+      { opacity: 0, transform: "scale(1.16)" },
+    ], { duration: reduceMotion ? 120 : 800, easing: "cubic-bezier(.7, 0, .84, 0)" }),
+  ]);
+}
+
 async function startApp() {
   appStarted = true;
-  elements.startScreen.hidden = true;
+  elements.startButton.disabled = true;
+  elements.startScreen.classList.add("is-opening");
   elements.experience.hidden = false;
   elements.skipButton.hidden = false;
   elements.audio.currentTime = 0;
   await playAudio();
+  await playOpeningTransition();
+  elements.startScreen.hidden = true;
+  elements.startScreen.classList.remove("is-opening");
   playSequence();
 }
 

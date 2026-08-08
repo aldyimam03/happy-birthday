@@ -49,8 +49,10 @@ button:focus-visible {
     radial-gradient(circle at 86% 76%, rgba(255, 214, 157, 0.48), transparent 30%),
     linear-gradient(145deg, #fffafd, #fff7ee);
 }
+.start-screen.is-opening { position: fixed; z-index: 200; inset: 0; }
 
 .start-card {
+  position: relative;
   width: min(100%, 560px);
   margin-block: auto;
   padding: clamp(32px, 8vw, 64px);
@@ -63,7 +65,6 @@ button:focus-visible {
   animation: card-in 700ms cubic-bezier(.22, 1, .36, 1) both;
 }
 
-.start-emoji,
 .outro-emoji { display: block; font-size: clamp(54px, 10vw, 82px); }
 
 .eyebrow {
@@ -104,6 +105,21 @@ button:focus-visible {
 .loader { display: grid; gap: 9px; width: min(100%, 310px); margin: 0 auto 22px; color: var(--muted); font-size: .82rem; }
 .loader-track { height: 5px; overflow: hidden; border-radius: 999px; background: rgba(48, 37, 49, .1); }
 .loader-track span { display: block; width: 8%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ff96bc, var(--pink)); transition: width 350ms ease; }
+
+.opening-gift { position: relative; z-index: 2; width: 112px; height: 118px; margin: -6px auto 6px; transform-origin: center 70%; }
+.gift-box { position: absolute; right: 8px; bottom: 0; left: 8px; height: 82px; overflow: hidden; border-radius: 6px 6px 14px 14px; background: linear-gradient(135deg, #f25b91, #cf326a); box-shadow: 0 18px 38px rgba(153, 38, 84, .24); }
+.gift-box::before, .gift-lid::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 21px; background: linear-gradient(90deg, #ffd35d, #ffec9f, #ffc942); transform: translateX(-50%); }
+.gift-box span { position: absolute; inset: 50% 0 auto; height: 4px; background: rgba(255, 255, 255, .2); }
+.gift-lid { position: absolute; z-index: 3; top: 27px; left: 0; width: 112px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, #ff6e9f, #dc3b75); box-shadow: 0 6px 12px rgba(120, 31, 67, .2); transform-origin: 85% 100%; }
+.gift-lid span { position: absolute; z-index: 2; top: -17px; left: 50%; width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(135deg, #ffe784, #ffc83d); box-shadow: 0 3px 6px rgba(158, 102, 0, .16); transform: translateX(-50%); }
+.gift-lid span::before, .gift-lid span::after { content: ""; position: absolute; z-index: -1; top: -4px; width: 38px; height: 25px; background: linear-gradient(135deg, #ffe784, #ffc83d); box-shadow: 0 4px 8px rgba(158, 102, 0, .14); }
+.gift-lid span::before { right: 12px; border-radius: 70% 35% 55% 40%; transform: rotate(14deg); transform-origin: right center; }
+.gift-lid span::after { left: 12px; border-radius: 35% 70% 40% 55%; transform: rotate(-14deg); transform-origin: left center; }
+.gift-glow { position: absolute; z-index: 1; top: 52px; left: calc(50% - 32px); width: 64px; height: 64px; border-radius: 50%; background: #fff3a5; box-shadow: 0 0 56px 24px rgba(255, 222, 98, .5); opacity: 0; }
+.gift-spark { position: absolute; z-index: 5; top: 40px; left: 50%; color: #efb91d; font-size: 22px; opacity: 0; }
+.spark-one { --spark-x: -78px; --spark-y: -92px; }
+.spark-two { --spark-x: 8px; --spark-y: -118px; font-size: 38px; }
+.spark-three { --spark-x: 72px; --spark-y: -76px; }
 
 .experience {
   position: relative;
