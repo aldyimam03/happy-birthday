@@ -89,7 +89,11 @@
           <canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
           <div id="balloons" class="balloons" aria-hidden="true"></div>
           <div class="portrait-wrap">
-            <img id="portrait" class="portrait" src="img/sarah.jpeg" alt="Foto Sarah Aqila Rahman" data-image-field="imagePath" />
+            <div class="portrait-slot portrait-slot-main"><img id="portrait" class="portrait portrait-bubble" src="img/AhaConvert_sarah_1.webp" alt="Foto Sarah Aqila Rahman 1" /></div>
+            <div class="portrait-slot portrait-slot-right-top"><img class="portrait portrait-bubble" src="img/AhaConvert_sarah_2.webp" alt="Foto Sarah Aqila Rahman 2" /></div>
+            <div class="portrait-slot portrait-slot-left-top"><img class="portrait portrait-bubble" src="img/AhaConvert_sarah_3.webp" alt="Foto Sarah Aqila Rahman 3" /></div>
+            <div class="portrait-slot portrait-slot-right-bottom"><img class="portrait portrait-bubble" src="img/AhaConvert_sarah_4.webp" alt="Foto Sarah Aqila Rahman 4" /></div>
+            <div class="portrait-slot portrait-slot-left-bottom"><img class="portrait portrait-bubble" src="img/AhaConvert_sarah_5.webp" alt="Foto Sarah Aqila Rahman 5" /></div>
             <img class="hat" src="img/hat.svg" alt="" aria-hidden="true" />
           </div>
           <div class="final-copy">
@@ -103,12 +107,25 @@
             <span class="outro-emoji" aria-hidden="true">💝</span>
             <p data-field="outroText">Sekarang, bilang padaku kalau kamu menyukainya.</p>
             <p class="final-note" data-field="finalNote">I hope this little surprise made you smile. Happy birthday, Sarah. May this year be gentle, exciting, and full of good things for you. ❤️</p>
-            <button id="replayButton" class="primary-button" type="button" data-field="replayText">Putar sekali lagi</button>
-            <button id="shareButton" class="secondary-button" type="button" data-field="shareLabel">Share this moment</button>
+            <p class="replay-prompt" data-field="replayPrompt">Or click, if you want to watch</p>
+            <div class="outro-actions">
+              <button id="replayButton" class="primary-button" type="button" data-field="replayLabel">Watch it again</button>
+              <button id="shareButton" class="secondary-button" type="button" data-field="shareLabel">Share this moment</button>
+            </div>
             <p id="shareStatus" class="share-status" role="status" aria-live="polite"></p>
             <p class="smile" data-field="outroSmiley">:)</p>
           </div>
         </div>
+
+        <div id="reviewScene" class="scene review-scene" hidden>
+          <div id="reviewContent" class="review-content"></div>
+        </div>
+
+        <nav id="reviewControls" class="review-controls" aria-label="Navigasi ulang manual" hidden>
+          <span class="swipe-hint">Lihat ulang</span>
+          <button id="reviewPrevious" type="button" aria-label="Lihat bagian sebelumnya">‹</button>
+          <button id="reviewNext" type="button" aria-label="Lihat bagian berikutnya">›</button>
+        </nav>
 
         <div id="progress" class="progress" aria-hidden="true"><span></span></div>
       </section>

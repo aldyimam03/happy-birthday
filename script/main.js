@@ -5,7 +5,15 @@ const DEFAULT_CONFIG = {
   name: "Sarah Aqila Rahman",
   greetingText: "I really like your name btw!",
   wishText: "Hopefully at your current age, what you are pursuing you can achieve 🙌🏻",
-  imagePath: "img/sarah.jpeg",
+  imagePath: "img/AhaConvert_sarah_1.webp",
+  portraitPhotos: [
+    "img/AhaConvert_sarah_1.webp",
+    "img/AhaConvert_sarah_2.webp",
+    "img/AhaConvert_sarah_3.webp",
+    "img/AhaConvert_sarah_4.webp",
+    "img/AhaConvert_sarah_5.webp",
+  ],
+  portraitFocus: ["50% 45%", "50% 42%", "50% 42%", "50% 38%", "50% 42%"],
   text1: "It's your birthday!!! :D",
   textInChatBox: "Happy birthday to you!! Yeee! Many many happy blah...",
   sendButtonLabel: "Send",
@@ -37,6 +45,8 @@ const DEFAULT_CONFIG = {
   outroText: "Okay, now come back and tell me if you liked it.",
   finalNote: "I hope this little surprise made you smile. Happy birthday, Sarah. May this year be gentle, exciting, and full of good things for you. ❤️",
   replayText: "Or click, if you want to watch it again.",
+  replayPrompt: "Or click, if you want to watch",
+  replayLabel: "Watch it again",
   shareLabel: "Share this moment",
   shareText: "A little birthday surprise for Sarah Aqila Rahman 🎉",
   siteUrl: "",
@@ -68,9 +78,15 @@ const elements = {
   replayButton: $("#replayButton"),
   shareButton: $("#shareButton"),
   shareStatus: $("#shareStatus"),
+  reviewScene: $("#reviewScene"),
+  reviewContent: $("#reviewContent"),
+  reviewControls: $("#reviewControls"),
+  reviewPrevious: $("#reviewPrevious"),
+  reviewNext: $("#reviewNext"),
   progress: $("#progress span"),
   error: $("#errorMessage"),
   portrait: $("#portrait"),
+  portraits: [...document.querySelectorAll(".portrait-bubble")],
 };
 
 let config = { ...DEFAULT_CONFIG };
@@ -79,6 +95,9 @@ let appStarted = false;
 let musicEnabled = true;
 let activeScene = null;
 let progressAnimation = null;
+let reviewSlides = [];
+let reviewIndex = -1;
+let reviewReady = false;
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 async function loadConfig() {
@@ -102,12 +121,180 @@ async function loadConfig() {
     const key = node.dataset.field;
     if (Object.hasOwn(config, key)) node.textContent = config[key];
   });
-  elements.portrait.src = config.imagePath;
-  elements.portrait.alt = `Foto ${config.name}`;
+  elements.portraits.forEach((portrait, index) => {
+    portrait.src = config.portraitPhotos[index] || config.imagePath;
+    portrait.alt = `Foto ${config.name} ${index + 1}`;
+    portrait.style.objectPosition = config.portraitFocus[index] || "50% 50%";
+  });
   document.title = `Selamat Ulang Tahun, ${config.name}! 🎉`;
   elements.startSubtitle.textContent = `Ada pesan spesial untuk ${config.name}. Aktifkan suara, lalu buka saat kamu siap.`;
   renderGallery();
+  prepareAnimatedText();
+  buildReviewSlides();
   applySocialMetadata();
+}
+
+function buildReviewSlides() {
+  reviewSlides = [
+    { type: "text", title: `${config.greeting} ${config.name}`, body: config.greetingText },
+    { type: "text", title: config.text1 },
+    { type: "text", title: "A little birthday message", body: config.textInChatBox },
+    { type: "text", title: config.text2 },
+    { type: "text", title: config.text3 },
+    { type: "text", title: `${config.text4} ${config.text4Adjective}.` },
+    { type: "text", title: config.text5Entry, body: `${config.text5Content} ${config.smiley}` },
+    ...config.galleryPhotos.map((source, index) => ({
+      type: "photo",
+      source,
+      caption: config.galleryCaptions[index] || `Memory ${index + 1}`,
+      focus: config.galleryFocus[index] || "50% 50%",
+    })),
+    { type: "text", title: config.galleryMore },
+    { type: "final" },
+  ];
+  reviewIndex = reviewSlides.length;
+}
+
+function renderReviewSlide(slide) {
+  elements.reviewContent.replaceChildren();
+  if (slide.type === "photo") {
+    const figure = document.createElement("figure");
+    figure.className = "review-photo-card";
+    const image = document.createElement("img");
+    image.src = slide.source;
+    image.alt = slide.caption;
+    image.style.objectPosition = slide.focus;
+    const detectReviewOrientation = () => {
+      figure.classList.toggle("is-portrait", image.naturalHeight > image.naturalWidth);
+    };
+    image.addEventListener("load", detectReviewOrientation, { once: true });
+    if (image.complete) detectReviewOrientation();
+    const caption = document.createElement("figcaption");
+    caption.textContent = slide.caption;
+    figure.append(image, caption);
+    elements.reviewContent.append(figure);
+    return;
+  }
+  if (slide.type === "final") {
+    const wrapper = document.createElement("div");
+    wrapper.className = "review-final";
+    const portraits = $(".portrait-wrap").cloneNode(true);
+    const copy = $(".final-copy").cloneNode(true);
+    portraits.querySelectorAll("[id]").forEach((node) => node.removeAttribute("id"));
+    portraits.querySelectorAll(".portrait-bubble, .hat").forEach((node) => {
+      node.style.opacity = "1";
+      node.style.visibility = "visible";
+    });
+    copy.style.opacity = "1";
+    copy.querySelectorAll(".text-piece").forEach((piece) => { piece.style.opacity = "1"; });
+    wrapper.append(portraits, copy);
+    elements.reviewContent.append(wrapper);
+    return;
+  }
+  const card = document.createElement("article");
+  card.className = "review-text-card";
+  const title = document.createElement("h2");
+  title.textContent = slide.title;
+  card.append(title);
+  if (slide.body) {
+    const body = document.createElement("p");
+    body.textContent = slide.body;
+    card.append(body);
+  }
+  elements.reviewContent.append(card);
+}
+
+function showOutroForReview() {
+  elements.reviewScene.classList.remove("is-active");
+  elements.reviewScene.hidden = true;
+  activeScene = $("#sceneOutro");
+  activeScene.classList.add("is-active");
+  reviewIndex = reviewSlides.length;
+  setReviewProgress(100);
+}
+
+function setReviewProgress(targetPercent) {
+  const trackWidth = elements.progress.parentElement.getBoundingClientRect().width;
+  const currentWidth = elements.progress.getBoundingClientRect().width;
+  const currentPercent = trackWidth ? Math.min(100, (currentWidth / trackWidth) * 100) : 0;
+  progressAnimation?.cancel();
+  elements.progress.style.width = `${currentPercent}%`;
+  progressAnimation = elements.progress.animate(
+    [{ width: `${currentPercent}%` }, { width: `${targetPercent}%` }],
+    { duration: 360, easing: "cubic-bezier(.22, 1, .36, 1)", fill: "forwards" },
+  );
+}
+
+function navigateReview(direction) {
+  if (!reviewReady) return;
+  if (reviewIndex === reviewSlides.length) {
+    reviewIndex = direction < 0 ? reviewSlides.length - 1 : 0;
+  } else {
+    reviewIndex += direction;
+    if (reviewIndex < 0 || reviewIndex >= reviewSlides.length) {
+      showOutroForReview();
+      return;
+    }
+  }
+  activeScene?.classList.remove("is-active");
+  elements.reviewScene.hidden = false;
+  elements.reviewScene.classList.add("is-active");
+  activeScene = elements.reviewScene;
+  renderReviewSlide(reviewSlides[reviewIndex]);
+  setReviewProgress(((reviewIndex + 1) / (reviewSlides.length + 1)) * 100);
+  animate(elements.reviewContent, [
+    { opacity: 0, transform: `translateX(${direction > 0 ? 24 : -24}px) scale(.985)` },
+    { opacity: 1, transform: "translateX(0) scale(1)" },
+  ], { duration: 360 });
+}
+
+function splitAnimatedText(selector, mode = "words") {
+  const node = $(selector);
+  if (!node || node.dataset.textPrepared) return;
+  const value = node.textContent.trim();
+  node.dataset.textPrepared = "true";
+  node.setAttribute("aria-label", value);
+  node.replaceChildren();
+  const parts = mode === "letters" ? [...value] : value.split(/(\s+)/);
+  parts.forEach((part) => {
+    const span = document.createElement("span");
+    span.setAttribute("aria-hidden", "true");
+    if (/^\s+$/.test(part)) {
+      span.className = "text-space";
+      span.textContent = " ";
+    } else {
+      span.className = "text-piece";
+      span.textContent = part;
+    }
+    node.append(span);
+  });
+}
+
+function prepareAnimatedText() {
+  splitAnimatedText('[data-field="name"]');
+  splitAnimatedText('[data-field="text1"]');
+  splitAnimatedText('[data-field="galleryTitle"]');
+  splitAnimatedText('[data-field="wishHeading"]', "letters");
+}
+
+function animateTextPieces(selector, variant = "rise") {
+  const pieces = [...document.querySelectorAll(`${selector} .text-piece`)];
+  const starts = {
+    rise: { opacity: 0, transform: "translateY(24px) rotateX(-55deg)" },
+    pop: { opacity: 0, transform: "scale(.35) rotate(-7deg)" },
+    alternate: null,
+    letters: { opacity: 0, transform: "translateY(-30px) rotate(12deg) scale(.7)" },
+  };
+  return Promise.all(pieces.map((piece, index) => {
+    const start = variant === "alternate"
+      ? { opacity: 0, transform: `translateX(${index % 2 ? 30 : -30}px) rotate(${index % 2 ? 3 : -3}deg)` }
+      : starts[variant];
+    return animate(piece, [start, { opacity: 1, transform: "translate(0) rotate(0) scale(1)" }], {
+      duration: variant === "letters" ? 520 : 620,
+      delay: index * (variant === "letters" ? 55 : 110),
+      easing: variant === "pop" || variant === "letters" ? "cubic-bezier(.34, 1.56, .64, 1)" : "cubic-bezier(.22, 1, .36, 1)",
+    });
+  }));
 }
 
 function renderGallery() {
@@ -188,11 +375,13 @@ function waitForAudio() {
 
 async function preloadAssets() {
   updateLoader(15, "Memuat foto utama…");
-  try {
-    if (!elements.portrait.complete) await elements.portrait.decode();
-  } catch (error) {
-    console.warn("Foto belum selesai dimuat:", error);
-  }
+  await Promise.all(elements.portraits.map(async (portrait) => {
+    try {
+      if (!portrait.complete) await portrait.decode();
+    } catch (error) {
+      console.warn(`Foto Sarah belum selesai dimuat: ${portrait.src}`, error);
+    }
+  }));
   updateLoader(35, "Memuat kenangan…");
   const galleryImages = [...document.querySelectorAll(".memory-card img")];
   await Promise.all(galleryImages.map(async (image) => {
@@ -245,12 +434,18 @@ function estimateSequenceDuration() {
     return 6500 + (config.galleryPhotos.length * 1100);
   }
   const typingDuration = [...config.textInChatBox].reduce((total, character) => total + (character === " " ? 18 : 35), 0);
+  const wordCount = (value) => value.trim().split(/\s+/).length;
+  const greetingTextMotion = Math.max(0, 620 + ((wordCount(config.name) - 1) * 110) - 650);
+  const birthdayTextMotion = Math.max(0, 620 + ((wordCount(config.text1) - 1) * 110) - 650);
+  const galleryTextMotion = Math.max(0, 620 + ((wordCount(config.galleryTitle) - 1) * 110) - 650);
+  const wishTextMotion = 520 + (([...config.wishHeading].filter((character) => character.trim()).length - 1) * 55);
   const greetingAndBirthday = 650 + 2800 + 1030 + 2200;
   const chat = Math.max(1030, 380 + typingDuration) + 1100;
   const ideas = 1030 + (4 * (700 + 380)) + (3 * 1450) + 2000;
   const gallery = 1030 + (config.galleryPhotos.length * (700 + 2100 + 450)) + 750 + 2200;
-  const finalAndOutro = 1030 + 900 + 6500 + 1030;
-  return greetingAndBirthday + chat + ideas + gallery + finalAndOutro;
+  const portraits = 700 + (Math.max(0, config.portraitPhotos.length - 1) * 480) + 980;
+  const finalAndOutro = 1030 + portraits + wishTextMotion + 6500 + 1030;
+  return greetingAndBirthday + greetingTextMotion + birthdayTextMotion + chat + ideas + gallery + galleryTextMotion + finalAndOutro;
 }
 
 function startProgress() {
@@ -343,10 +538,18 @@ async function playSequence() {
   const { signal } = sequenceController;
   startProgress();
 
-  await showScene("#sceneGreeting", 10, signal);
+  let greetingAnimation;
+  await showScene("#sceneGreeting", 10, signal, () => {
+    greetingAnimation = animateTextPieces('[data-field="name"]', "rise");
+  });
+  await greetingAnimation;
   await delay(reduceMotion ? 1000 : 2800, signal);
   if (signal.aborted) return;
-  await showScene("#sceneBirthday", 25, signal);
+  let birthdayAnimation;
+  await showScene("#sceneBirthday", 25, signal, () => {
+    birthdayAnimation = animateTextPieces('[data-field="text1"]', "pop");
+  });
+  await birthdayAnimation;
   await delay(reduceMotion ? 1000 : 2200, signal);
   if (signal.aborted) return;
   const chatNode = $("#chatText");
@@ -379,20 +582,36 @@ async function playSequence() {
   }
 
   if (signal.aborted) return;
-  await showScene("#sceneGallery", 68, signal);
+  let galleryTitleAnimation;
+  await showScene("#sceneGallery", 68, signal, () => {
+    galleryTitleAnimation = animateTextPieces('[data-field="galleryTitle"]', "alternate");
+  });
+  await galleryTitleAnimation;
   await playGallery(signal);
   if (signal.aborted) return;
   createBalloons();
   const portraitWrap = $(".portrait-wrap");
   const finalCopy = $(".final-copy");
-  portraitWrap.style.opacity = "0";
+  const portraitBubbles = [...document.querySelectorAll(".portrait-bubble")];
+  const partyHat = $(".portrait-wrap .hat");
+  portraitWrap.style.opacity = "1";
+  portraitBubbles.forEach((portrait) => { portrait.style.opacity = "0"; });
+  partyHat.style.opacity = "0";
   finalCopy.style.opacity = "0";
   const finalScene = await showScene("#sceneFinal", 84, signal);
-  launchConfetti();
+  for (const [index, portrait] of portraitBubbles.entries()) {
+    if (signal.aborted) return;
+    await animate(portrait, [
+      { opacity: 0, transform: `translateX(${index === 0 ? 0 : index % 2 ? 24 : -24}px) scale(.55) rotate(${index % 2 ? 10 : -10}deg)` },
+      { opacity: 1, transform: "translateX(0) scale(1) rotate(0)" },
+    ], { duration: index === 0 ? 700 : 480, easing: "cubic-bezier(.34, 1.56, .64, 1)" });
+  }
   await Promise.all([
-    animate(portraitWrap, [{ opacity: 0, transform: "scale(.7) rotate(-5deg)" }, { opacity: 1, transform: "scale(1) rotate(0)" }], { duration: 900 }),
-    animate(finalCopy, [{ opacity: 0, transform: "translateY(20px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 900, delay: 250 }),
+    animate(partyHat, [{ opacity: 0, transform: "translateX(-50%) translateY(-30px) rotate(-16deg)" }, { opacity: 1, transform: "translateX(-50%) translateY(0) rotate(-4deg)" }], { duration: 550 }),
+    animate(finalCopy, [{ opacity: 0, transform: "translateY(20px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 800, delay: 180 }),
   ]);
+  await animateTextPieces('[data-field="wishHeading"]', "letters");
+  launchConfetti();
   await delay(reduceMotion ? 1800 : 6500, signal);
   if (signal.aborted || !finalScene) return;
   await showOutro(signal);
@@ -402,6 +621,9 @@ async function showOutro(signal = new AbortController().signal) {
   await showScene("#sceneOutro", 100, signal);
   finishProgress();
   elements.skipButton.hidden = true;
+  reviewReady = true;
+  reviewIndex = reviewSlides.length;
+  elements.reviewControls.hidden = false;
   elements.replayButton.focus({ preventScroll: true });
 }
 
@@ -541,6 +763,9 @@ elements.skipButton.addEventListener("click", async () => {
   await showOutro();
 });
 elements.replayButton.addEventListener("click", () => {
+  reviewReady = false;
+  elements.reviewControls.hidden = true;
+  elements.reviewScene.hidden = true;
   document.querySelectorAll(".idea").forEach((idea) => {
     idea.style.opacity = "0";
     idea.style.visibility = "hidden";
@@ -550,7 +775,15 @@ elements.replayButton.addEventListener("click", () => {
   playAudio();
   playSequence();
 });
+elements.reviewPrevious.addEventListener("click", () => navigateReview(-1));
+elements.reviewNext.addEventListener("click", () => navigateReview(1));
 elements.shareButton.addEventListener("click", async () => {
+  animate(elements.shareButton, [
+    { transform: "scale(1)" },
+    { transform: "scale(.95)", offset: .35 },
+    { transform: "scale(1.06)", offset: .72 },
+    { transform: "scale(1)" },
+  ], { duration: 520, easing: "cubic-bezier(.34, 1.56, .64, 1)" });
   const url = config.siteUrl || window.location.href;
   const shareData = { title: document.title, text: config.shareText, url };
   try {
@@ -567,10 +800,12 @@ elements.shareButton.addEventListener("click", async () => {
     }
   }
 });
-elements.portrait.addEventListener("error", () => {
-  elements.portrait.src = "img/favicon.png";
-  showError("Foto utama tidak ditemukan, jadi gambar cadangan digunakan.");
-}, { once: true });
+elements.portraits.forEach((portrait) => {
+  portrait.addEventListener("error", () => {
+    portrait.src = "img/favicon.png";
+    showError("Salah satu foto Sarah tidak ditemukan, jadi gambar cadangan digunakan.");
+  }, { once: true });
+});
 document.addEventListener("visibilitychange", () => {
   if (!appStarted) return;
   if (document.hidden) elements.audio.pause(); else playAudio();

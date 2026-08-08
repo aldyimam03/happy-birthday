@@ -169,6 +169,8 @@ button:focus-visible {
 .scene-content h2 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(3rem, 10vw, 7rem); line-height: .98; letter-spacing: -.05em; }
 .scene-content > p:not(.eyebrow) { font-size: clamp(1.15rem, 3vw, 1.6rem); line-height: 1.6; }
 .big-copy { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(3rem, 10vw, 7rem) !important; line-height: 1.05 !important; }
+.text-piece { display: inline-block; opacity: 0; will-change: transform, opacity; }
+.text-space { display: inline-block; width: .28em; }
 
 .chat-card {
   position: relative;
@@ -211,9 +213,16 @@ button:focus-visible {
 
 .final-scene { align-content: center; gap: 22px; text-align: center; }
 .confetti { position: absolute; z-index: 4; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.portrait-wrap { position: relative; z-index: 2; width: clamp(190px, 42vw, 280px); }
-.portrait { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; object-position: center; border: 8px solid white; border-radius: 50%; box-shadow: var(--shadow); }
-.hat { position: absolute; z-index: 3; top: -40%; left: 50%; width: 28%; transform: translateX(-50%) rotate(-4deg); transform-origin: bottom center; filter: drop-shadow(0 8px 8px rgba(0, 0, 0, .12)); pointer-events: none; }
+.portrait-wrap { position: relative; z-index: 2; width: min(94vw, 600px); height: clamp(260px, 39vw, 320px); }
+.portrait-slot { position: absolute; top: 50%; left: 50%; display: grid; place-items: center; transform: translate(-50%, -50%) translate(var(--portrait-x), var(--portrait-y)) rotate(var(--portrait-rotation)); }
+.portrait-slot-main { --portrait-x: 0px; --portrait-y: 0px; --portrait-rotation: 0deg; z-index: 5; width: clamp(175px, 19vw, 225px); }
+.portrait-slot-right-top { --portrait-x: 155px; --portrait-y: -62px; --portrait-rotation: 6deg; z-index: 3; width: clamp(112px, 12vw, 142px); }
+.portrait-slot-left-top { --portrait-x: -155px; --portrait-y: -62px; --portrait-rotation: -6deg; z-index: 3; width: clamp(112px, 12vw, 142px); }
+.portrait-slot-right-bottom { --portrait-x: 145px; --portrait-y: 82px; --portrait-rotation: 8deg; z-index: 2; width: clamp(105px, 11vw, 132px); }
+.portrait-slot-left-bottom { --portrait-x: -145px; --portrait-y: 82px; --portrait-rotation: -8deg; z-index: 2; width: clamp(105px, 11vw, 132px); }
+.portrait { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border: 7px solid white; border-radius: 50%; box-shadow: 0 18px 46px rgba(72, 39, 57, .2); }
+.portrait-slot-main .portrait { border-width: 8px; box-shadow: var(--shadow); }
+.hat { position: absolute; z-index: 8; top: -72px; left: 50%; width: clamp(48px, 7vw, 70px); transform: translateX(-50%) rotate(-4deg); transform-origin: bottom center; filter: drop-shadow(0 8px 8px rgba(0, 0, 0, .12)); pointer-events: none; }
 .final-copy { z-index: 2; width: min(92vw, 820px); }
 .final-copy h2 { margin: 0; color: var(--pink-dark); font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.6rem, 9vw, 6rem); line-height: 1; letter-spacing: -.04em; }
 .final-copy p { margin: 16px auto 0; font-size: clamp(1.1rem, 3vw, 1.6rem); line-height: 1.55; }
@@ -224,10 +233,35 @@ button:focus-visible {
 .outro-scene .scene-content { display: grid; justify-items: center; gap: 18px; }
 .outro-scene p { max-width: 700px; margin: 0; }
 .final-note { padding: 18px 22px; border: 1px solid rgba(233, 79, 135, .14); border-radius: 18px; background: rgba(255, 255, 255, .62); color: var(--muted); font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.05rem, 2.5vw, 1.3rem) !important; line-height: 1.65 !important; }
-.secondary-button { min-height: 48px; padding: 11px 22px; color: var(--pink-dark); font-weight: 750; border: 1px solid rgba(199, 53, 109, .24); border-radius: 999px; background: rgba(255, 255, 255, .76); cursor: pointer; }
-.secondary-button:hover { background: white; }
+.replay-prompt { color: var(--muted); font-size: clamp(.95rem, 2vw, 1.08rem) !important; }
+.outro-actions { display: flex; justify-content: center; align-items: center; gap: 12px; width: min(100%, 440px); }
+.outro-actions button { flex: 1 1 0; white-space: nowrap; }
+.secondary-button { position: relative; min-height: 48px; padding: 11px 22px; overflow: hidden; color: var(--pink-dark); font-weight: 750; border: 1px solid rgba(199, 53, 109, .24); border-radius: 999px; background: rgba(255, 255, 255, .76); box-shadow: 0 8px 22px rgba(199, 53, 109, .1); cursor: pointer; transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease; }
+.secondary-button::after { content: ""; position: absolute; top: -80%; left: -45%; width: 34%; height: 260%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .85), transparent); transform: rotate(20deg) translateX(-240%); transition: transform 520ms ease; }
+.secondary-button:hover { background: white; box-shadow: 0 13px 28px rgba(199, 53, 109, .18); transform: translateY(-2px); }
+.secondary-button:hover::after { transform: rotate(20deg) translateX(520%); }
+.secondary-button:active { box-shadow: 0 5px 14px rgba(199, 53, 109, .14); transform: translateY(0) scale(.97); }
 .share-status { min-height: 1.2em; color: var(--pink-dark); font-size: .9rem !important; }
 .smile { color: var(--pink-dark); font-size: 2.4rem !important; font-weight: 800; letter-spacing: .12em; }
+
+.review-scene { z-index: 20; background: radial-gradient(circle at 20% 20%, rgba(255, 190, 213, .35), transparent 28%), var(--cream); }
+.review-content { display: grid; place-items: center; width: min(92vw, 920px); text-align: center; }
+.review-text-card { width: min(100%, 780px); padding: clamp(26px, 6vw, 54px); border: 1px solid rgba(255, 255, 255, .9); border-radius: 28px; background: rgba(255, 255, 255, .72); box-shadow: var(--shadow); backdrop-filter: blur(14px); }
+.review-text-card h2 { margin: 0; color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.2rem, 7vw, 5rem); line-height: 1.05; }
+.review-text-card p { margin: 18px 0 0; color: var(--muted); font-size: clamp(1.05rem, 2.6vw, 1.4rem); line-height: 1.6; }
+.review-photo-card { display: grid; gap: 14px; margin: 0; padding: 10px 10px 17px; border-radius: 20px; background: white; box-shadow: var(--shadow); }
+.review-photo-card img { display: block; max-width: min(82vw, 680px); max-height: 62vh; margin: auto; border-radius: 12px; object-fit: contain; }
+.review-photo-card.is-portrait { width: min(82vw, 460px); }
+.review-photo-card.is-portrait img { width: 100%; height: min(48vh, 330px); object-fit: cover; }
+.review-photo-card figcaption { color: var(--muted); font-family: Georgia, "Times New Roman", serif; font-size: 1.05rem; }
+.review-final { display: grid; justify-items: center; gap: 14px; }
+.review-final .portrait-wrap { transform: scale(.82); margin-block: -28px; }
+.review-final .final-copy { opacity: 1 !important; }
+.review-controls { position: fixed; z-index: 90; right: max(18px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 8px; padding: 7px; border: 1px solid rgba(48, 37, 49, .09); border-radius: 999px; background: rgba(255, 255, 255, .82); box-shadow: 0 12px 32px rgba(65, 38, 52, .16); backdrop-filter: blur(14px); }
+.review-controls .swipe-hint { padding-inline: 8px 5px; color: var(--muted); font-size: .78rem; }
+.review-controls button { display: grid; place-items: center; width: 42px; height: 42px; padding: 0 0 4px; color: var(--pink-dark); border: 0; border-radius: 50%; background: #fff0f5; font-family: Georgia, serif; font-size: 2rem; line-height: 1; cursor: pointer; transition: transform 160ms ease, background 160ms ease; }
+.review-controls button:hover { background: #ffe0eb; transform: scale(1.08); }
+.review-controls button:active { transform: scale(.94); }
 
 .progress { position: fixed; z-index: 60; right: 0; bottom: 0; left: 0; height: 4px; background: rgba(48, 37, 49, .08); }
 .progress span { display: block; width: 0; height: 100%; background: linear-gradient(90deg, #ff96bc, var(--pink)); will-change: width; }
@@ -246,9 +280,26 @@ button:focus-visible {
   .gallery-stage { height: 48vh; min-height: 230px; }
   .memory-card img { max-height: 36vh; }
   .memory-card.is-portrait .memory-photo-frame { height: 36vh; }
-  .portrait-wrap { width: clamp(145px, 32vh, 210px); }
+  .portrait-wrap { height: 230px; transform: scale(.88); }
   .final-copy h2 { font-size: clamp(2.2rem, 8vh, 4rem); }
   .final-copy p { margin-top: 8px; }
+}
+
+@media (max-width: 500px) {
+  .portrait-wrap { width: 100%; height: 250px; }
+  .portrait-slot-main { width: 160px; }
+  .portrait-slot-right-top { --portrait-x: 105px; --portrait-y: -50px; width: 98px; }
+  .portrait-slot-left-top { --portrait-x: -105px; --portrait-y: -50px; width: 98px; }
+  .portrait-slot-right-bottom { --portrait-x: 100px; --portrait-y: 67px; width: 90px; }
+  .portrait-slot-left-bottom { --portrait-x: -100px; --portrait-y: 67px; width: 90px; }
+  .portrait { border-width: 5px; }
+  .portrait-slot-main .portrait { border-width: 7px; }
+  .hat { top: -48px; width: 48px; }
+  .outro-actions { gap: 8px; }
+  .outro-actions button { padding-inline: 12px; font-size: .86rem; }
+  .review-controls .swipe-hint { display: none; }
+  .review-controls button { width: 40px; height: 40px; }
+  .review-final .portrait-wrap { transform: scale(.82); margin-block: -22px; }
 }
 
 @media (max-height: 760px) {
